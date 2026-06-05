@@ -1,0 +1,20 @@
+{
+  "name": "tribal-epic-game",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace @tribal-epic/api run dev",
+    "dev:web": "npm --workspace @tribal-epic/web run dev",
+    "build": "npm --workspace @tribal-epic/web run build",
+    "db:seed": "npm --workspace @tribal-epic/api run db:seed",
+    "lint": "npm --workspace @tribal-epic/web run lint && npm --workspace @tribal-epic/api run lint"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
+  }
+}

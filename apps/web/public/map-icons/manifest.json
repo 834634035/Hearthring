@@ -1,0 +1,102 @@
+[
+  {
+    "name": "tribal-hearth",
+    "parchment": "/map-icons/parchment/tribal-hearth.png",
+    "transparent": "/map-icons/transparent/tribal-hearth.png"
+  },
+  {
+    "name": "major-totem-camp",
+    "parchment": "/map-icons/parchment/major-totem-camp.png",
+    "transparent": "/map-icons/transparent/major-totem-camp.png"
+  },
+  {
+    "name": "branch-camp",
+    "parchment": "/map-icons/parchment/branch-camp.png",
+    "transparent": "/map-icons/transparent/branch-camp.png"
+  },
+  {
+    "name": "shaman-stones",
+    "parchment": "/map-icons/parchment/shaman-stones.png",
+    "transparent": "/map-icons/transparent/shaman-stones.png"
+  },
+  {
+    "name": "trade-market",
+    "parchment": "/map-icons/parchment/trade-market.png",
+    "transparent": "/map-icons/transparent/trade-market.png"
+  },
+  {
+    "name": "war-camp",
+    "parchment": "/map-icons/parchment/war-camp.png",
+    "transparent": "/map-icons/transparent/war-camp.png"
+  },
+  {
+    "name": "oasis-settlement",
+    "parchment": "/map-icons/parchment/oasis-settlement.png",
+    "transparent": "/map-icons/transparent/oasis-settlement.png"
+  },
+  {
+    "name": "desert-hidden-city",
+    "parchment": "/map-icons/parchment/desert-hidden-city.png",
+    "transparent": "/map-icons/transparent/desert-hidden-city.png"
+  },
+  {
+    "name": "mountain-camp",
+    "parchment": "/map-icons/parchment/mountain-camp.png",
+    "transparent": "/map-icons/transparent/mountain-camp.png"
+  },
+  {
+    "name": "forest-village",
+    "parchment": "/map-icons/parchment/forest-village.png",
+    "transparent": "/map-icons/transparent/forest-village.png"
+  },
+  {
+    "name": "marsh-settlement",
+    "parchment": "/map-icons/parchment/marsh-settlement.png",
+    "transparent": "/map-icons/transparent/marsh-settlement.png"
+  },
+  {
+    "name": "river-crossing",
+    "parchment": "/map-icons/parchment/river-crossing.png",
+    "transparent": "/map-icons/transparent/river-crossing.png"
+  },
+  {
+    "name": "sacred-tree-grove",
+    "parchment": "/map-icons/parchment/sacred-tree-grove.png",
+    "transparent": "/map-icons/transparent/sacred-tree-grove.png"
+  },
+  {
+    "name": "totem-pole",
+    "parchment": "/map-icons/parchment/totem-pole.png",
+    "transparent": "/map-icons/transparent/totem-pole.png"
+  },
+  {
+    "name": "obsidian-mine",
+    "parchment": "/map-icons/parchment/obsidian-mine.png",
+    "transparent": "/map-icons/transparent/obsidian-mine.png"
+  },
+  {
+    "name": "high-grade-crystal-node",
+    "parchment": "/map-icons/parchment/high-grade-crystal-node.png",
+    "transparent": "/map-icons/transparent/high-grade-crystal-node.png"
+  },
+  {
+    "name": "king-beast-territory",
+    "parchment": "/map-icons/parchment/king-beast-territory.png",
+    "transparent": "/map-icons/transparent/king-beast-territory.png"
+  },
+  {
+    "name": "beast-lair",
+    "parchment": "/map-icons/parchment/beast-lair.png",
+    "transparent": "/map-icons/transparent/beast-lair.png"
+  },
+  {
+    "name": "dangerous-sea-passage",
+    "parchment": "/map-icons/parchment/dangerous-sea-passage.png",
+    "transparent": "/map-icons/transparent/dangerous-sea-passage.png"
+  },
+  {
+    "name": "locked-fire-copper-site",
+    "parchment": "/map-icons/parchment/locked-fire-copper-site.png",
+    "transparent": "/map-icons/transparent/locked-fire-copper-site.png"
+  }
+]
