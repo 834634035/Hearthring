@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { USER_ROLE_DESCRIPTIONS, type UserRole } from "@tribal-epic/shared";
 import { useNavigate } from "react-router-dom";
 import { apiChangePassword } from "../api";
 import { useAuth } from "../auth";
@@ -93,7 +94,8 @@ export function AccountPage() {
 }
 
 function roleLabel(role: string) {
-  if (role === "admin") return "管理员：用户、权限和内容全部可管理";
-  if (role === "editor") return "编辑者：可管理内容，不可管理用户";
-  return "观察者：只读访问";
+  if (role in USER_ROLE_DESCRIPTIONS) {
+    return USER_ROLE_DESCRIPTIONS[role as UserRole];
+  }
+  return USER_ROLE_DESCRIPTIONS.viewer;
 }

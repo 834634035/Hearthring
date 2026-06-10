@@ -1,4 +1,4 @@
-import type { CrudEntity } from "@tribal-epic/shared";
+import { canWriteContent, type CrudEntity } from "@tribal-epic/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiSave } from "../api";
 import { useAuth } from "../auth";
@@ -22,7 +22,7 @@ export function AdminPage({ entity }: AdminPageProps) {
   const fields = fieldConfigs[entity];
   const columns = tableColumns[entity];
   const title = entityLabels[entity];
-  const canWrite = user?.role === "admin" || user?.role === "editor";
+  const canWrite = user ? canWriteContent(user.role) : false;
 
   const emptyRow = useMemo(() => {
     const row: EntityRow = {};

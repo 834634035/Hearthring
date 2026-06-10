@@ -7,24 +7,26 @@ import {
   apiUpdateUser,
   type AuthUser
 } from "../api";
+import { DEFAULT_USER_ROLE, USER_ROLE_OPTIONS, canManageUsers, isUserRole, type UserRole } from "@tribal-epic/shared";
 import { useAuth } from "../auth";
 
-const roles = [
-  { value: "admin", label: "管理员" },
-  { value: "editor", label: "编辑者" },
-  { value: "viewer", label: "观察者" }
-];
+const roles = USER_ROLE_OPTIONS;
 
 export function UsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AuthUser[]>([]);
-  const [newUser, setNewUser] = useState({ username: "", displayName: "", password: "", role: "viewer" });
+  const [newUser, setNewUser] = useState<{ username: string; displayName: string; password: string; role: UserRole }>({
+    username: "",
+    displayName: "",
+    password: "",
+    role: DEFAULT_USER_ROLE
+  });
   const [resetPasswords, setResetPasswords] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canManage = currentUser?.role === "admin";
+  const canManage = currentUser ? canManageUsers(currentUser.role) : false;
 
   const loadUsers = useCallback(async () => {
     if (!canManage) return;
@@ -53,7 +55,7 @@ export function UsersPage() {
     setLoading(true);
     try {
       await apiCreateUser(newUser);
-      setNewUser({ username: "", displayName: "", password: "", role: "viewer" });
+      setNewUser({ username: "", displayName: "", password: "", role: DEFAULT_USER_ROLE });
       setMessage("用户已创建");
       await loadUsers();
     } catch {
@@ -154,7 +156,13 @@ export function UsersPage() {
           </label>
           <label className="field">
             <span>角色</span>
-            <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}>
+            <select
+              value={newUser.role}
+              onChange={(event) => {
+                const role = event.target.value;
+                if (isUserRole(role)) setNewUser({ ...newUser, role });
+              }}
+            >
               {roles.map((role) => (
                 <option key={role.value} value={role.value}>
                   {role.label}

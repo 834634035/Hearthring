@@ -15,11 +15,22 @@ export function EntityForm({ fields, value, onChange, onSubmit, onCancel, saving
     onChange({ ...value, [field.key]: nextValue });
   }
 
+  function fieldClass(field: FieldConfig) {
+    return [
+      "field",
+      `field-${field.type ?? "text"}`,
+      field.type === "textarea" ? "field-wide" : "",
+      field.required ? "field-required" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
   return (
     <div className="editor-panel">
       <div className="form-grid">
         {fields.map((field) => (
-          <label className={field.type === "textarea" ? "field field-wide" : "field"} key={field.key}>
+          <label className={fieldClass(field)} key={field.key}>
             <span>{field.label}</span>
             {field.type === "textarea" ? (
               <textarea value={String(value[field.key] ?? "")} onChange={(event) => update(field, event.target.value)} rows={4} />

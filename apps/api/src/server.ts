@@ -3,6 +3,14 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { promisify } from "node:util";
 import { parse } from "node:url";
 import {
+  canManageUsers,
+  canReadContent,
+  canWriteContent,
+  crudEntities,
+  DEFAULT_USER_ROLE,
+  isUserRole
+} from "@tribal-epic/shared";
+import {
   assertEntity,
   countRows,
   createSession,
@@ -133,28 +141,37 @@ const server = createServer(async (req, res) => {
     if (!user) return;
 
     if (parts[0] === "api" && parts[1] === "users") {
-      if (!requireRole(user, res, ["admin"])) return;
+      if (!requirePermission(user, res, canManageUsers)) return;
       await handleUsersRoute(req, res, parts, user);
       return;
     }
 
     if (pathname === "/api/dashboard") {
-      const counts = {
-        tribes: (await countRows("tribes")).count,
-        creatures: (await countRows("creatures")).count,
-        factions: (await countRows("factions")).count,
-        events: (await countRows("events")).count,
-        resources: (await countRows("resources")).count,
-        settlements: (await countRows("settlements")).count,
-        kingBeasts: 0
-      };
+      const counts: Record<string, number> = { kingBeasts: 0 };
+      for (const entity of crudEntities) {
+        counts[entity] = (await countRows(entity)).count;
+      }
       const creatures = (await listRows("creatures")) as Array<{ isKingBeast: boolean | number }>;
       counts.kingBeasts = creatures.filter((creature) => Boolean(creature.isKingBeast)).length;
-      const strongTribes = ((await listRows("tribes")) as Array<Record<string, unknown>>)
+      const tribes = (await listRows("tribes")) as Array<Record<string, unknown>>;
+      const settlements = (await listRows("settlements")) as Array<Record<string, unknown>>;
+      const events = (await listRows("events")) as Array<Record<string, unknown>>;
+      const totalPopulation = sumNumbers(tribes, "population");
+      const settlementPopulation = sumNumbers(settlements, "population");
+      const strongTribes = tribes
         .filter((tribe) => Number(tribe.strengthLevel) >= 4)
         .sort((a, b) => Number(b.strengthLevel) - Number(a.strengthLevel))
         .slice(0, 5);
-      sendJson(res, { counts, strongTribes });
+      sendJson(res, {
+        counts,
+        strongTribes,
+        totalPopulation,
+        settlementPopulation,
+        continentPopulation: toContinentPopulation(tribes, totalPopulation),
+        tribePopulations: toTribePopulations(tribes, totalPopulation),
+        ageDistribution: toAgeDistribution(totalPopulation),
+        timeline: toTimeline(events)
+      });
       return;
     }
 
@@ -168,34 +185,34 @@ const server = createServer(async (req, res) => {
     const id = parts[2] ? Number(parts[2]) : undefined;
 
     if (req.method === "GET" && !id) {
-      if (!requireRole(user, res, ["admin", "editor", "viewer"])) return;
+      if (!requirePermission(user, res, canReadContent)) return;
       sendJson(res, await listRows(entity));
       return;
     }
 
     if (req.method === "GET" && id) {
-      if (!requireRole(user, res, ["admin", "editor", "viewer"])) return;
+      if (!requirePermission(user, res, canReadContent)) return;
       const row = await getRow(entity, id);
       sendJson(res, row ?? { message: "Not found" }, row ? 200 : 404);
       return;
     }
 
     if (req.method === "POST") {
-      if (!requireRole(user, res, ["admin", "editor"])) return;
+      if (!requirePermission(user, res, canWriteContent)) return;
       const body = await readBody(req);
       sendJson(res, await createRow(entity, body), 201);
       return;
     }
 
     if (req.method === "PUT" && id) {
-      if (!requireRole(user, res, ["admin", "editor"])) return;
+      if (!requirePermission(user, res, canWriteContent)) return;
       const body = await readBody(req);
       sendJson(res, await updateRow(entity, id, body));
       return;
     }
 
     if (req.method === "DELETE" && id) {
-      if (!requireRole(user, res, ["admin", "editor"])) return;
+      if (!requirePermission(user, res, canWriteContent)) return;
       await deleteRow(entity, id);
       res.writeHead(204).end();
       return;
@@ -288,6 +305,67 @@ function toPublicUser(user: { id: number; username: string; displayName: string;
   };
 }
 
+function sumNumbers(rows: Array<Record<string, unknown>>, key: string) {
+  return rows.reduce((sum, row) => sum + Number(row[key] ?? 0), 0);
+}
+
+function toPercent(value: number, total: number) {
+  if (total <= 0) return 0;
+  return Math.round((value / total) * 1000) / 10;
+}
+
+function toContinentPopulation(rows: Array<Record<string, unknown>>, total: number) {
+  const groups = new Map<string, number>();
+  rows.forEach((row) => {
+    const continent = String(row.continent ?? "未知大陆");
+    groups.set(continent, (groups.get(continent) ?? 0) + Number(row.population ?? 0));
+  });
+  return [...groups.entries()]
+    .map(([continent, population]) => ({
+      continent,
+      population,
+      percent: toPercent(population, total)
+    }))
+    .sort((a, b) => b.population - a.population);
+}
+
+function toTribePopulations(rows: Array<Record<string, unknown>>, total: number) {
+  return rows
+    .map((row) => ({
+      name: String(row.name ?? "未命名部落"),
+      region: String(row.region ?? ""),
+      population: Number(row.population ?? 0),
+      strengthLevel: Number(row.strengthLevel ?? 0),
+      percent: toPercent(Number(row.population ?? 0), total)
+    }))
+    .sort((a, b) => b.population - a.population)
+    .slice(0, 8);
+}
+
+function toAgeDistribution(total: number) {
+  const ratios = [
+    ["幼年", 0.34],
+    ["青年", 0.22],
+    ["成年", 0.31],
+    ["长者", 0.13]
+  ] as const;
+  return ratios.map(([label, ratio]) => ({
+    label,
+    value: Math.round(total * ratio),
+    percent: Math.round(ratio * 1000) / 10
+  }));
+}
+
+function toTimeline(rows: Array<Record<string, unknown>>) {
+  return rows.slice(0, 6).map((row) => ({
+    title: String(row.title ?? "未命名事件"),
+    act: String(row.act ?? ""),
+    region: String(row.region ?? ""),
+    eventType: String(row.eventType ?? ""),
+    description: String(row.description ?? "")
+  }));
+}
+
 async function handleUsersRoute(
   req: IncomingMessage,
   res: ServerResponse,
@@ -307,7 +385,7 @@ async function handleUsersRoute(
     const username = String(body.username ?? "").trim();
     const displayName = String(body.displayName ?? username).trim();
     const password = String(body.password ?? "");
-    const role = normalizeRole(String(body.role ?? "viewer"));
+    const role = normalizeRole(String(body.role ?? DEFAULT_USER_ROLE));
 
     if (!/^[a-zA-Z0-9_-]{3,32}$/.test(username)) {
       sendJson(res, { message: "账号只能包含字母、数字、下划线或连字符，长度 3-32" }, 400);
@@ -371,14 +449,14 @@ async function handleUsersRoute(
   sendJson(res, { message: "Method not allowed" }, 405);
 }
 
-function requireRole(user: { role: string }, res: ServerResponse, allowed: string[]) {
-  if (allowed.includes(user.role)) return true;
+function requirePermission(user: { role: string }, res: ServerResponse, allowed: (role: string) => boolean) {
+  if (allowed(user.role)) return true;
   sendJson(res, { message: "Forbidden" }, 403);
   return false;
 }
 
 function normalizeRole(role: string) {
-  if (["admin", "editor", "viewer"].includes(role)) return role;
+  if (isUserRole(role)) return role;
   throw new Error(`Unknown role: ${role}`);
 }
 

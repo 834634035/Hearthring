@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { canWriteContent } from "@tribal-epic/shared";
 import { apiGet, apiSave } from "../api";
 import { useAuth } from "../auth";
 import { WorldMap } from "../components/WorldMap";
@@ -8,7 +9,7 @@ export function MapPage() {
   const { user } = useAuth();
   const [tribes, setTribes] = useState<EntityRow[]>([]);
   const [settlements, setSettlements] = useState<EntityRow[]>([]);
-  const canEditTribes = user?.role === "admin" || user?.role === "editor";
+  const canEditTribes = user ? canWriteContent(user.role) : false;
 
   useEffect(() => {
     void Promise.all([apiGet<EntityRow[]>("/tribes"), apiGet<EntityRow[]>("/settlements")]).then(

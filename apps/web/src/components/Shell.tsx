@@ -1,4 +1,4 @@
-import { adminEntities } from "@tribal-epic/shared";
+import { adminEntities, canManageUsers } from "@tribal-epic/shared";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -55,7 +55,7 @@ export function Shell({ children }: ShellProps) {
             <span className="nav-symbol">钥</span>
             <span>账号安全</span>
           </NavLink>
-          {user?.role === "admin" ? (
+          {user && canManageUsers(user.role) ? (
             <NavLink to="/users" className={navClass}>
               <span className="nav-symbol">权</span>
               <span>权限管理</span>

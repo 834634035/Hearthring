@@ -1,7 +1,8 @@
 import type { EntityRow } from "../types";
+import type { TableColumn } from "../entityConfig";
 
 interface DataTableProps {
-  columns: string[];
+  columns: TableColumn[];
   rows: EntityRow[];
   onEdit?: (row: EntityRow) => void;
   onDelete?: (row: EntityRow) => void;
@@ -16,7 +17,7 @@ export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column}>{column}</th>
+              <th key={column.key}>{column.label}</th>
             ))}
             {hasActions && <th>操作</th>}
           </tr>
@@ -25,7 +26,7 @@ export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
           {rows.map((row) => (
             <tr key={String(row.id)}>
               {columns.map((column) => (
-                <td key={column}>{formatCell(row[column])}</td>
+                <td key={column.key}>{formatCell(row[column.key])}</td>
               ))}
               {hasActions && (
                 <td>
