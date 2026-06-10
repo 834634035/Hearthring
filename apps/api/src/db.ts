@@ -208,6 +208,25 @@ export async function initSchema() {
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(80) NOT NULL UNIQUE,
+      displayName VARCHAR(120) NOT NULL,
+      passwordHash VARCHAR(255) NOT NULL,
+      role VARCHAR(40) NOT NULL DEFAULT 'admin',
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      userId INT NOT NULL,
+      tokenHash CHAR(64) NOT NULL UNIQUE,
+      expiresAt TIMESTAMP NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   `);
 }
 
@@ -254,6 +273,114 @@ export async function countRows(entity: EntityName) {
   return { count: Number(rows[0]?.count ?? 0) };
 }
 
+export interface UserRow {
+  id: number;
+  username: string;
+  displayName: string;
+  passwordHash: string;
+  role: string;
+}
+
+export interface PublicUser {
+  id: number;
+  username: string;
+  displayName: string;
+  role: string;
+  createdAt?: string;
+}
+
+export async function ensureDefaultUser(passwordHash: string) {
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM users");
+  if (Number(rows[0]?.count ?? 0) > 0) return;
+
+  await pool.query(
+    "INSERT INTO users (username, displayName, passwordHash, role) VALUES (?, ?, ?, ?)",
+    [process.env.ADMIN_USERNAME ?? "graybud", process.env.ADMIN_DISPLAY_NAME ?? "灰芽守火人", passwordHash, "admin"]
+  );
+}
+
+export async function getUserByUsername(username: string) {
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM users WHERE username = ?", [username]);
+  return normalizeUser(rows[0]);
+}
+
+export async function listUsers() {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "SELECT id, username, displayName, role, createdAt FROM users ORDER BY createdAt DESC"
+  );
+  return rows.map(normalizePublicUser);
+}
+
+export async function createUser(data: { username: string; displayName: string; passwordHash: string; role: string }) {
+  const [result] = await pool.query<ResultSetHeader>(
+    "INSERT INTO users (username, displayName, passwordHash, role) VALUES (?, ?, ?, ?)",
+    [data.username, data.displayName, data.passwordHash, data.role]
+  );
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "SELECT id, username, displayName, role, createdAt FROM users WHERE id = ?",
+    [result.insertId]
+  );
+  return normalizePublicUser(rows[0]);
+}
+
+export async function updateUser(id: number, data: { displayName?: string; role?: string }) {
+  const assignments: string[] = [];
+  const values: unknown[] = [];
+  if (data.displayName !== undefined) {
+    assignments.push("displayName = ?");
+    values.push(data.displayName);
+  }
+  if (data.role !== undefined) {
+    assignments.push("role = ?");
+    values.push(data.role);
+  }
+  if (assignments.length > 0) {
+    await pool.query(`UPDATE users SET ${assignments.join(", ")} WHERE id = ?`, [...values, id]);
+  }
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "SELECT id, username, displayName, role, createdAt FROM users WHERE id = ?",
+    [id]
+  );
+  return normalizePublicUser(rows[0]);
+}
+
+export async function updateUserPassword(id: number, passwordHash: string) {
+  await pool.query("UPDATE users SET passwordHash = ? WHERE id = ?", [passwordHash, id]);
+  await pool.query("DELETE FROM auth_sessions WHERE userId = ?", [id]);
+}
+
+export async function deleteUser(id: number) {
+  await pool.query("DELETE FROM users WHERE id = ?", [id]);
+}
+
+export async function createSession(userId: number, tokenHash: string, expiresAt: Date) {
+  await pool.query("INSERT INTO auth_sessions (userId, tokenHash, expiresAt) VALUES (?, ?, ?)", [userId, tokenHash, expiresAt]);
+}
+
+export async function deleteSession(tokenHash: string) {
+  await pool.query("DELETE FROM auth_sessions WHERE tokenHash = ?", [tokenHash]);
+}
+
+export async function getUserBySession(tokenHash: string) {
+  await pool.query("DELETE FROM auth_sessions WHERE expiresAt <= UTC_TIMESTAMP()");
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT users.id, users.username, users.displayName, users.role
+     FROM auth_sessions
+     INNER JOIN users ON users.id = auth_sessions.userId
+     WHERE auth_sessions.tokenHash = ? AND auth_sessions.expiresAt > UTC_TIMESTAMP()
+     LIMIT 1`,
+    [tokenHash]
+  );
+  const row = rows[0];
+  if (!row) return undefined;
+  return {
+    id: Number(row.id),
+    username: String(row.username),
+    displayName: String(row.displayName),
+    role: String(row.role)
+  } satisfies PublicUser;
+}
+
 export async function truncateTables() {
   await pool.query("SET FOREIGN_KEY_CHECKS = 0");
   for (const table of ["story_events", "factions", "creatures", "resources", "settlements", "regions", "characters", "tribes"]) {
@@ -280,6 +407,28 @@ function normalizeRows(rows: RowDataPacket[]) {
     if ("isKingBeast" in next) next.isKingBeast = Boolean(next.isKingBeast);
     return next;
   });
+}
+
+function normalizeUser(row: RowDataPacket | undefined): UserRow | undefined {
+  if (!row) return undefined;
+  return {
+    id: Number(row.id),
+    username: String(row.username),
+    displayName: String(row.displayName),
+    passwordHash: String(row.passwordHash),
+    role: String(row.role)
+  };
+}
+
+function normalizePublicUser(row: RowDataPacket | undefined): PublicUser {
+  if (!row) throw new Error("User not found");
+  return {
+    id: Number(row.id),
+    username: String(row.username),
+    displayName: String(row.displayName),
+    role: String(row.role),
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt ?? "")
+  };
 }
 
 function normalizeValue(value: unknown) {

@@ -6,9 +6,9 @@ export function HearthPage() {
       <section className="page-header">
         <div>
           <p className="eyebrow">Three.js Prototype</p>
-          <h1>火塘场景</h1>
+          <h1>灰芽部落基础场景</h1>
         </div>
-        <div className="status-pill">石环 · 曜石 · 归海余火</div>
+        <div className="status-pill">火塘 · 火种 · 鹿角旁支聚落</div>
       </section>
 
       <section className="panel hearth-panel">

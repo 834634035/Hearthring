@@ -1,6 +1,7 @@
 import type { CrudEntity } from "@tribal-epic/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiSave } from "../api";
+import { useAuth } from "../auth";
 import { DataTable } from "../components/DataTable";
 import { EntityForm } from "../components/EntityForm";
 import { entityLabels, fieldConfigs, tableColumns } from "../entityConfig";
@@ -11,6 +12,7 @@ interface AdminPageProps {
 }
 
 export function AdminPage({ entity }: AdminPageProps) {
+  const { user } = useAuth();
   const [rows, setRows] = useState<EntityRow[]>([]);
   const [editing, setEditing] = useState<EntityRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -20,6 +22,7 @@ export function AdminPage({ entity }: AdminPageProps) {
   const fields = fieldConfigs[entity];
   const columns = tableColumns[entity];
   const title = entityLabels[entity];
+  const canWrite = user?.role === "admin" || user?.role === "editor";
 
   const emptyRow = useMemo(() => {
     const row: EntityRow = {};
@@ -87,6 +90,7 @@ export function AdminPage({ entity }: AdminPageProps) {
           </button>
           <button
             className="primary-button"
+            disabled={!canWrite}
             onClick={() => {
               setEditing(emptyRow);
               setIsCreating(true);
@@ -114,7 +118,12 @@ export function AdminPage({ entity }: AdminPageProps) {
       )}
 
       <section className="panel">
-        <DataTable columns={columns} rows={rows} onEdit={(row) => setEditing(row)} onDelete={remove} />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          onEdit={canWrite ? (row) => setEditing(row) : undefined}
+          onDelete={canWrite ? remove : undefined}
+        />
       </section>
     </div>
   );

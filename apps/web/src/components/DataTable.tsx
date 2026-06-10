@@ -3,11 +3,13 @@ import type { EntityRow } from "../types";
 interface DataTableProps {
   columns: string[];
   rows: EntityRow[];
-  onEdit: (row: EntityRow) => void;
-  onDelete: (row: EntityRow) => void;
+  onEdit?: (row: EntityRow) => void;
+  onDelete?: (row: EntityRow) => void;
 }
 
 export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
+  const hasActions = Boolean(onEdit || onDelete);
+
   return (
     <div className="table-wrap">
       <table className="data-table">
@@ -16,7 +18,7 @@ export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
             {columns.map((column) => (
               <th key={column}>{column}</th>
             ))}
-            <th>操作</th>
+            {hasActions && <th>操作</th>}
           </tr>
         </thead>
         <tbody>
@@ -25,16 +27,22 @@ export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
               {columns.map((column) => (
                 <td key={column}>{formatCell(row[column])}</td>
               ))}
-              <td>
-                <div className="row-actions">
-                  <button className="icon-button" title="编辑" onClick={() => onEdit(row)}>
-                    改
-                  </button>
-                  <button className="icon-button danger" title="删除" onClick={() => onDelete(row)}>
-                    删
-                  </button>
-                </div>
-              </td>
+              {hasActions && (
+                <td>
+                  <div className="row-actions">
+                    {onEdit && (
+                      <button className="icon-button" title="编辑" onClick={() => onEdit(row)}>
+                        改
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button className="icon-button danger" title="删除" onClick={() => onDelete(row)}>
+                        删
+                      </button>
+                    )}
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
-import { apiGet } from "../api";
+import { useCallback, useEffect, useState } from "react";
+import { apiGet, apiSave } from "../api";
+import { useAuth } from "../auth";
 import { WorldMap } from "../components/WorldMap";
 import type { EntityRow } from "../types";
 
 export function MapPage() {
+  const { user } = useAuth();
   const [tribes, setTribes] = useState<EntityRow[]>([]);
   const [settlements, setSettlements] = useState<EntityRow[]>([]);
+  const canEditTribes = user?.role === "admin" || user?.role === "editor";
 
   useEffect(() => {
     void Promise.all([apiGet<EntityRow[]>("/tribes"), apiGet<EntityRow[]>("/settlements")]).then(
@@ -15,6 +18,16 @@ export function MapPage() {
       }
     );
   }, []);
+
+  const handleTribeCoordinatesChange = useCallback(
+    async (tribeId: number, coordinatesX: number, coordinatesY: number) => {
+      await apiSave("tribes", { coordinatesX, coordinatesY }, tribeId);
+      setTribes((rows) =>
+        rows.map((row) => (Number(row.id) === tribeId ? { ...row, coordinatesX, coordinatesY } : row))
+      );
+    },
+    []
+  );
 
   return (
     <div className="page-stack map-page">
@@ -27,7 +40,12 @@ export function MapPage() {
       </section>
 
       <section className="panel map-panel-full">
-        <WorldMap tribes={tribes} settlements={settlements} />
+        <WorldMap
+          tribes={tribes}
+          settlements={settlements}
+          canEditTribes={canEditTribes}
+          onTribeCoordinatesChange={handleTribeCoordinatesChange}
+        />
       </section>
     </div>
   );
