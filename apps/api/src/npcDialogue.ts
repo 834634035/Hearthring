@@ -9,6 +9,7 @@ export type NpcDialogueRequest = {
   npcTitle: string;
   persona?: string;
   sceneContext?: string;
+  fallbackLines?: string[];
   messages?: NpcChatMessage[];
 };
 
@@ -138,6 +139,11 @@ function splitReply(text: string) {
 }
 
 function buildFallbackLines(body: NpcDialogueRequest) {
+  if (Array.isArray(body.fallbackLines)) {
+    const lines = body.fallbackLines.map((line) => String(line ?? "").trim()).filter(Boolean).slice(0, 5);
+    if (lines.length > 0) return lines;
+  }
+
   const name = body.npcName || "族人";
   return [
     `${name}抬眼看你，火塘的光在瞳孔里跳了一下。`,

@@ -128,6 +128,7 @@ const server = createServer(async (req, res) => {
         npcTitle,
         persona: String(body.persona ?? ""),
         sceneContext: String(body.sceneContext ?? ""),
+        fallbackLines: Array.isArray(body.fallbackLines) ? body.fallbackLines.map((line) => String(line ?? "")) : undefined,
         messages: Array.isArray(body.messages) ? (body.messages as Array<{ role: string; content: string }>).map((item) => ({
           role: item.role === "assistant" ? "assistant" : "user",
           content: String(item.content ?? "")
@@ -231,7 +232,6 @@ await ensureDefaultUser(await hashPassword(process.env.ADMIN_PASSWORD ?? "hearth
 server.listen(port, () => {
   console.log(`Tribal Epic API listening on http://localhost:${port}`);
 });
-
 function sendJson(res: ServerResponse, data: unknown, status = 200) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(data));

@@ -1,0 +1,30 @@
+---
+description: 部落史诗 monorepo 通用规范
+alwaysApply: true
+---
+
+# 项目结构
+
+- `apps/web` — React + Vite 前端（@tribal-epic/web）
+- `apps/api` — Node HTTP API（@tribal-epic/api）
+- `packages/shared` — 共享类型、实体定义、权限工具（@tribal-epic/shared）
+
+常用命令：`npm run dev:web`、`npm run dev:api`、`npm run db:seed`、`npm run lint`
+
+# 改动原则
+
+- 改动范围尽量小，不重构无关代码，不添加未请求的功能
+- 共享类型与实体定义优先放在 `packages/shared`，前后端从 `@tribal-epic/shared` 导入
+- 不要提交 `apps/web/dist` 等构建产物
+- 仅在用户明确要求时执行 git commit
+- 与用户沟通使用简体中文
+
+# 新增 CRUD 实体流程
+
+1. `packages/shared/src/entities/types.ts` — 加入 `CrudEntity` 联合类型
+2. `packages/shared/src/entities/definitions.ts` — 添加实体定义（fields、tableColumns、tableName）
+3. `packages/shared/src/entities/schema.ts` — 表结构会自动参与生成
+4. `apps/api` — 路由已通配 `crudEntities`，通常无需改 server.ts
+5. `apps/web` — `App.tsx` 通过 `adminEntities` 自动生成路由与侧边栏
+
+参考现有实体：`tribes`、`characters`、`regions`

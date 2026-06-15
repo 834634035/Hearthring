@@ -12,7 +12,7 @@ export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
   const hasActions = Boolean(onEdit || onDelete);
 
   return (
-    <div className="table-wrap">
+    <div className="table-wrap thin-scrollbar">
       <table className="data-table">
         <thead>
           <tr>

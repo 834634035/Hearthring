@@ -1,0 +1,545 @@
+{
+  "version": 1,
+  "models": {
+    "characters.npc.kaykit.barbarian": {
+      "path": "/models/characters/npc/barbarian.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "characters.npc.kaykit.knight": {
+      "path": "/models/characters/npc/knight.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "characters.npc.kaykit.mage": {
+      "path": "/models/characters/npc/mage.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "characters.npc.kaykit.ranger": {
+      "path": "/models/characters/npc/ranger.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "characters.npc.kaykit.rogue": {
+      "path": "/models/characters/npc/rogue.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "characters.npc.kaykit.rogueHooded": {
+      "path": "/models/characters/npc/rogue-hooded.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "characters.prototype.ual.standard": {
+      "path": "/models/characters/prototype/ual1-standard.glb",
+      "scale": 1,
+      "pack": "universal-animation-library-standard"
+    },
+    "animations.kaykit.rigMedium.movementBasic": {
+      "path": "/models/animations/rig-medium/movement-basic.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "animations.kaykit.rigMedium.general": {
+      "path": "/models/animations/rig-medium/general.glb",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.axe1Handed": {
+      "path": "/models/props/weapons/kaykit/axe_1handed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.axe2Handed": {
+      "path": "/models/props/weapons/kaykit/axe_2handed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.dagger": {
+      "path": "/models/props/weapons/kaykit/dagger.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.sword1Handed": {
+      "path": "/models/props/weapons/kaykit/sword_1handed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.sword2Handed": {
+      "path": "/models/props/weapons/kaykit/sword_2handed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.sword2HandedColor": {
+      "path": "/models/props/weapons/kaykit/sword_2handed_color.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.staff": {
+      "path": "/models/props/weapons/kaykit/staff.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.wand": {
+      "path": "/models/props/weapons/kaykit/wand.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.bow": {
+      "path": "/models/props/weapons/kaykit/bow.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.bowWithString": {
+      "path": "/models/props/weapons/kaykit/bow_withString.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.crossbow1Handed": {
+      "path": "/models/props/weapons/kaykit/crossbow_1handed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.crossbow2Handed": {
+      "path": "/models/props/weapons/kaykit/crossbow_2handed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.arrowBow": {
+      "path": "/models/props/weapons/kaykit/arrow_bow.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.arrowBowBundle": {
+      "path": "/models/props/weapons/kaykit/arrow_bow_bundle.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.arrowCrossbow": {
+      "path": "/models/props/weapons/kaykit/arrow_crossbow.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.arrowCrossbowBundle": {
+      "path": "/models/props/weapons/kaykit/arrow_crossbow_bundle.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.quiver": {
+      "path": "/models/props/weapons/kaykit/quiver.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldRound": {
+      "path": "/models/props/weapons/kaykit/shield_round.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldRoundColor": {
+      "path": "/models/props/weapons/kaykit/shield_round_color.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldRoundBarbarian": {
+      "path": "/models/props/weapons/kaykit/shield_round_barbarian.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldSquare": {
+      "path": "/models/props/weapons/kaykit/shield_square.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldSquareColor": {
+      "path": "/models/props/weapons/kaykit/shield_square_color.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldBadge": {
+      "path": "/models/props/weapons/kaykit/shield_badge.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldBadgeColor": {
+      "path": "/models/props/weapons/kaykit/shield_badge_color.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldSpikes": {
+      "path": "/models/props/weapons/kaykit/shield_spikes.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.weapons.kaykit.shieldSpikesColor": {
+      "path": "/models/props/weapons/kaykit/shield_spikes_color.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.items.kaykit.mugEmpty": {
+      "path": "/models/props/items/kaykit/mug_empty.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.items.kaykit.mugFull": {
+      "path": "/models/props/items/kaykit/mug_full.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.items.kaykit.spellbookOpen": {
+      "path": "/models/props/items/kaykit/spellbook_open.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.items.kaykit.spellbookClosed": {
+      "path": "/models/props/items/kaykit/spellbook_closed.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "props.items.kaykit.smokebomb": {
+      "path": "/models/props/items/kaykit/smokebomb.gltf",
+      "scale": 1,
+      "pack": "kaykit-adventurers"
+    },
+    "environment.bushes.stylizedNature.bushCommon": {
+      "path": "/models/environment/bushes/stylized-nature/Bush_Common.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.bushes.stylizedNature.bushCommonFlowers": {
+      "path": "/models/environment/bushes/stylized-nature/Bush_Common_Flowers.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.flower3Group": {
+      "path": "/models/environment/flowers/stylized-nature/Flower_3_Group.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.flower3Single": {
+      "path": "/models/environment/flowers/stylized-nature/Flower_3_Single.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.flower4Group": {
+      "path": "/models/environment/flowers/stylized-nature/Flower_4_Group.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.flower4Single": {
+      "path": "/models/environment/flowers/stylized-nature/Flower_4_Single.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.petal1": {
+      "path": "/models/environment/flowers/stylized-nature/Petal_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.petal2": {
+      "path": "/models/environment/flowers/stylized-nature/Petal_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.petal3": {
+      "path": "/models/environment/flowers/stylized-nature/Petal_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.petal4": {
+      "path": "/models/environment/flowers/stylized-nature/Petal_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.flowers.stylizedNature.petal5": {
+      "path": "/models/environment/flowers/stylized-nature/Petal_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.clover1": {
+      "path": "/models/environment/ground-cover/stylized-nature/Clover_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.clover2": {
+      "path": "/models/environment/ground-cover/stylized-nature/Clover_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.fern1": {
+      "path": "/models/environment/ground-cover/stylized-nature/Fern_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.grassCommonShort": {
+      "path": "/models/environment/ground-cover/stylized-nature/Grass_Common_Short.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.grassCommonTall": {
+      "path": "/models/environment/ground-cover/stylized-nature/Grass_Common_Tall.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.grassWispyShort": {
+      "path": "/models/environment/ground-cover/stylized-nature/Grass_Wispy_Short.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.grassWispyTall": {
+      "path": "/models/environment/ground-cover/stylized-nature/Grass_Wispy_Tall.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.plant1": {
+      "path": "/models/environment/ground-cover/stylized-nature/Plant_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.plant1Big": {
+      "path": "/models/environment/ground-cover/stylized-nature/Plant_1_Big.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.plant7": {
+      "path": "/models/environment/ground-cover/stylized-nature/Plant_7.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.groundCover.stylizedNature.plant7Big": {
+      "path": "/models/environment/ground-cover/stylized-nature/Plant_7_Big.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.mushrooms.stylizedNature.mushroomCommon": {
+      "path": "/models/environment/mushrooms/stylized-nature/Mushroom_Common.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.mushrooms.stylizedNature.mushroomLaetiporus": {
+      "path": "/models/environment/mushrooms/stylized-nature/Mushroom_Laetiporus.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleRound1": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Round_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleRound2": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Round_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleRound3": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Round_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleRound4": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Round_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleRound5": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Round_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleSquare1": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Square_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleSquare2": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Square_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleSquare3": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Square_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleSquare4": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Square_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleSquare5": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Square_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.pebbleSquare6": {
+      "path": "/models/environment/rocks/stylized-nature/Pebble_Square_6.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockMedium1": {
+      "path": "/models/environment/rocks/stylized-nature/Rock_Medium_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockMedium2": {
+      "path": "/models/environment/rocks/stylized-nature/Rock_Medium_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockMedium3": {
+      "path": "/models/environment/rocks/stylized-nature/Rock_Medium_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathRoundSmall1": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Round_Small_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathRoundSmall2": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Round_Small_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathRoundSmall3": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Round_Small_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathRoundThin": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Round_Thin.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathRoundWide": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Round_Wide.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathSquareSmall1": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Square_Small_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathSquareSmall2": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Square_Small_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathSquareSmall3": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Square_Small_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathSquareThin": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Square_Thin.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.rocks.stylizedNature.rockPathSquareWide": {
+      "path": "/models/environment/rocks/stylized-nature/RockPath_Square_Wide.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.commonTree1": {
+      "path": "/models/environment/trees/stylized-nature/CommonTree_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.commonTree2": {
+      "path": "/models/environment/trees/stylized-nature/CommonTree_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.commonTree3": {
+      "path": "/models/environment/trees/stylized-nature/CommonTree_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.commonTree4": {
+      "path": "/models/environment/trees/stylized-nature/CommonTree_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.commonTree5": {
+      "path": "/models/environment/trees/stylized-nature/CommonTree_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.deadTree1": {
+      "path": "/models/environment/trees/stylized-nature/DeadTree_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.deadTree2": {
+      "path": "/models/environment/trees/stylized-nature/DeadTree_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.deadTree3": {
+      "path": "/models/environment/trees/stylized-nature/DeadTree_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.deadTree4": {
+      "path": "/models/environment/trees/stylized-nature/DeadTree_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.deadTree5": {
+      "path": "/models/environment/trees/stylized-nature/DeadTree_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.pine1": {
+      "path": "/models/environment/trees/stylized-nature/Pine_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.pine2": {
+      "path": "/models/environment/trees/stylized-nature/Pine_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.pine3": {
+      "path": "/models/environment/trees/stylized-nature/Pine_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.pine4": {
+      "path": "/models/environment/trees/stylized-nature/Pine_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.pine5": {
+      "path": "/models/environment/trees/stylized-nature/Pine_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.twistedTree1": {
+      "path": "/models/environment/trees/stylized-nature/TwistedTree_1.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.twistedTree2": {
+      "path": "/models/environment/trees/stylized-nature/TwistedTree_2.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.twistedTree3": {
+      "path": "/models/environment/trees/stylized-nature/TwistedTree_3.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.twistedTree4": {
+      "path": "/models/environment/trees/stylized-nature/TwistedTree_4.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    },
+    "environment.trees.stylizedNature.twistedTree5": {
+      "path": "/models/environment/trees/stylized-nature/TwistedTree_5.gltf",
+      "scale": 1,
+      "pack": "stylized-nature-megakit-standard"
+    }
+  }
+}

@@ -7,9 +7,10 @@ interface EntityFormProps {
   onSubmit: () => void;
   onCancel: () => void;
   saving: boolean;
+  inModal?: boolean;
 }
 
-export function EntityForm({ fields, value, onChange, onSubmit, onCancel, saving }: EntityFormProps) {
+export function EntityForm({ fields, value, onChange, onSubmit, onCancel, saving, inModal }: EntityFormProps) {
   function update(field: FieldConfig, raw: string | boolean) {
     const nextValue = field.type === "number" ? Number(raw) : raw;
     onChange({ ...value, [field.key]: nextValue });
@@ -27,7 +28,7 @@ export function EntityForm({ fields, value, onChange, onSubmit, onCancel, saving
   }
 
   return (
-    <div className="editor-panel">
+    <div className={inModal ? "entity-form" : "editor-panel"}>
       <div className="form-grid">
         {fields.map((field) => (
           <label className={fieldClass(field)} key={field.key}>
@@ -61,7 +62,7 @@ export function EntityForm({ fields, value, onChange, onSubmit, onCancel, saving
           取消
         </button>
         <button className="primary-button" disabled={saving} onClick={onSubmit} type="button">
-          {saving ? "保存中" : "保存"}
+          {saving ? "保存中..." : "保存"}
         </button>
       </div>
     </div>

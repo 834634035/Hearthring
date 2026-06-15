@@ -1,0 +1,36 @@
+---
+description: React/TSX 前端约定
+globs: apps/web/src/**/*.tsx
+alwaysApply: false
+---
+
+# 组件模式
+
+- 使用函数组件 + Hooks，不用 class 组件
+- 页面放在 `pages/`，可复用 UI 放在 `components/`
+- 导出命名函数组件：`export function AdminPage()`
+
+# 状态与副作用
+
+- 状态：`useState`；挂载/监听：`useEffect`；需缓存的派生值：`useMemo`；稳定函数引用：`useCallback`
+- 简单派生值直接 `const`，不必过度使用 `useMemo`
+- 更新对象状态用展开：`setEditing({ ...editing, name: value })`，不要直接突变
+
+# 通信模式
+
+- 子组件通信用 props + `onXxx` 回调（无 emit）
+- 表单用受控组件：`value` + `onChange`，参考 `EntityForm.tsx`
+- 全局登录态用 Context：`auth.tsx` 的 `AuthProvider` + `useAuth()`
+
+# 路由
+
+- `react-router-dom` v6：`Routes` / `Route` / `NavLink` / `useNavigate` / `Navigate`
+- 侧边栏导航用 `NavLink`；代码跳转用 `useNavigate()`；条件重定向用 `<Navigate>`
+- 路由守卫在 `App.tsx` 通过 `user` 判断，不用 beforeEach
+
+# API 与配置
+
+- HTTP 请求统一走 `../api`（`apiGet`、`apiSave`、`apiDelete` 等）
+- 实体标签/字段/列配置从 `entityConfig.ts` 导入（re-export 自 shared）
+- 样式用现有 `className` 与 `styles/global.css`，不引入新 CSS 框架
+- 错误信息用 `setError` 展示，参考 `AdminPage.tsx` 的 `error-line`

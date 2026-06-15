@@ -10,9 +10,12 @@
   "scripts": {
     "dev:api": "npm --workspace @tribal-epic/api run dev",
     "dev:web": "npm --workspace @tribal-epic/web run dev",
-    "build": "npm --workspace @tribal-epic/web run build",
+    "dev:game": "npm --workspace @tribal-epic/game run dev",
+    "build": "npm --workspace @tribal-epic/web run build && npm --workspace @tribal-epic/game run build",
+    "build:web": "npm --workspace @tribal-epic/web run build",
+    "build:game": "npm --workspace @tribal-epic/game run build",
     "db:seed": "npm --workspace @tribal-epic/api run db:seed",
-    "lint": "npm --workspace @tribal-epic/web run lint && npm --workspace @tribal-epic/api run lint"
+    "lint": "npm --workspace @tribal-epic/web run lint && npm --workspace @tribal-epic/game run lint && npm --workspace @tribal-epic/api run lint"
   },
   "devDependencies": {
     "sharp": "^0.34.5"

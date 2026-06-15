@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiSave } from "../api";
 import { useAuth } from "../auth";
 import { DataTable } from "../components/DataTable";
 import { EntityForm } from "../components/EntityForm";
+import { Modal } from "../components/Modal";
 import { entityLabels, fieldConfigs, tableColumns } from "../entityConfig";
 import type { EntityRow } from "../types";
 
@@ -14,6 +15,7 @@ interface AdminPageProps {
 export function AdminPage({ entity }: AdminPageProps) {
   const { user } = useAuth();
   const [rows, setRows] = useState<EntityRow[]>([]);
+  const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<EntityRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,11 +37,14 @@ export function AdminPage({ entity }: AdminPageProps) {
   }, [fields]);
 
   const loadRows = useCallback(async () => {
+    setLoading(true);
     setError("");
     try {
       setRows(await apiGet<EntityRow[]>(`/${entity}`));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "加载失败");
+    } finally {
+      setLoading(false);
     }
   }, [entity]);
 
@@ -77,6 +82,15 @@ export function AdminPage({ entity }: AdminPageProps) {
     }
   }
 
+  function closeEditor() {
+    setEditing(null);
+    setIsCreating(false);
+  }
+
+  const editorOpen = Boolean(editing);
+  const editorTitle = isCreating ? `新增${title}` : `编辑${title}`;
+  const editorSubtitle = isCreating ? "填写设定条目，保存后会同步到内容表。" : "调整现有条目，保存后会刷新列表。";
+
   return (
     <div className="page-stack">
       <section className="page-header">
@@ -85,7 +99,7 @@ export function AdminPage({ entity }: AdminPageProps) {
           <h1>{title}管理</h1>
         </div>
         <div className="header-actions">
-          <button className="secondary-button" onClick={loadRows}>
+          <button className="secondary-button" onClick={() => void loadRows()} disabled={loading}>
             刷新
           </button>
           <button
@@ -103,25 +117,28 @@ export function AdminPage({ entity }: AdminPageProps) {
 
       {error && <div className="error-line">{error}</div>}
 
-      {editing && (
-        <EntityForm
-          fields={fields}
-          value={editing}
-          onChange={setEditing}
-          onSubmit={save}
-          onCancel={() => {
-            setEditing(null);
-            setIsCreating(false);
-          }}
-          saving={saving}
-        />
-      )}
+      <Modal open={editorOpen} title={editorTitle} subtitle={editorSubtitle} onClose={closeEditor}>
+        {editing && (
+          <EntityForm
+            fields={fields}
+            value={editing}
+            onChange={setEditing}
+            onSubmit={save}
+            onCancel={closeEditor}
+            saving={saving}
+            inModal
+          />
+        )}
+      </Modal>
 
       <section className="panel">
         <DataTable
           columns={columns}
           rows={rows}
-          onEdit={canWrite ? (row) => setEditing(row) : undefined}
+          onEdit={canWrite ? (row) => {
+            setIsCreating(false);
+            setEditing(row);
+          } : undefined}
           onDelete={canWrite ? remove : undefined}
         />
       </section>

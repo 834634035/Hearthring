@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { CHAPTER_SCENES, type ChapterSceneDefinition } from "../chapterScenes";
 import { loadCharacterWithAnimations, type CharacterAnimator } from "../characterAnimation";
 import { CharacterEquipment } from "../characterEquipment";
 import { loadModelById, clearModelCache, getModelEntry, isModelUrlAvailable } from "../modelAssets";
 import { updateThirdPersonPlayer, triggerPlayerAttack, triggerPlayerJump } from "../thirdPersonPlayer";
 import {
-  HEARTH_VILLAGE_NPCS,
   findNearbyNpc,
+  getNpcsForScene,
   npcDialoguePayload,
   spawnVillageNpc,
   type NpcDialoguePayload,
   type VillageNpcInstance
 } from "../villageNpcs";
 import { SceneDialogueOverlay } from "./SceneDialogueOverlay";
+import type { ChapterQuestStep } from "../chapterQuestline";
 type ThreeModule = any;
 
 type Disposable = {
@@ -27,7 +29,17 @@ type SceneUiBridge = {
   isDialogueOpen: () => boolean;
 };
 
-export function ThreeHearthScene() {
+interface ThreeHearthSceneProps {
+  sceneDefinition?: ChapterSceneDefinition;
+  activeQuest?: ChapterQuestStep | null;
+  onQuestComplete?: (questId: string) => void;
+}
+
+export function ThreeHearthScene({
+  sceneDefinition = CHAPTER_SCENES[0]!,
+  activeQuest = null,
+  onQuestComplete
+}: ThreeHearthSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const fpsRef = useRef<HTMLSpanElement | null>(null);
   const [nearNpc, setNearNpc] = useState<{ id: string; name: string; title: string } | null>(null);
@@ -52,7 +64,7 @@ export function ThreeHearthScene() {
 
     void import(/* @vite-ignore */ threeModuleUrl).then((THREE) => {
       if (disposed) return;
-      cleanup = mountGraybudVillage(THREE, mount, uiBridge, fpsRef);
+      cleanup = mountGraybudVillage(THREE, mount, uiBridge, fpsRef, sceneDefinition);
     });
 
     const teardown = () => {
@@ -63,7 +75,7 @@ export function ThreeHearthScene() {
     import.meta.hot?.dispose(teardown);
 
     return teardown;
-  }, []);
+  }, [sceneDefinition]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -78,13 +90,20 @@ export function ThreeHearthScene() {
   return (
     <div className="three-scene-wrap">
       <div className="three-scene" ref={mountRef} />
-      <SceneDialogueOverlay nearNpc={nearNpc} dialogue={dialogue} onClose={() => setDialogue(null)} />
+      <SceneDialogueOverlay
+        nearNpc={nearNpc}
+        dialogue={dialogue}
+        activeQuest={activeQuest}
+        onQuestComplete={onQuestComplete}
+        onClose={() => setDialogue(null)}
+      />
       <div className="scene-fps" aria-hidden="true">
         <span ref={fpsRef}>-- FPS</span>
       </div>
       <div className="scene-hud" aria-hidden="true">
-        <strong>灰芽火塘地</strong>
-        <span>WASD 移动 · 左键 Throw · 空格跳跃 · E 对话 · 按住拖拽环视 · Shift 冲刺</span>
+        <strong>{sceneDefinition.name}</strong>
+        <span>WASD 移动 · 左键攻击 · 空格跳跃 · E 对话 · 按住拖拽环视 · Shift 冲刺</span>
+        <span>{sceneDefinition.summary}</span>
       </div>
     </div>
   );
@@ -94,15 +113,16 @@ function mountGraybudVillage(
   THREE: ThreeModule,
   mount: HTMLDivElement,
   ui: SceneUiBridge,
-  fpsRef: RefObject<HTMLSpanElement | null>
+  fpsRef: RefObject<HTMLSpanElement | null>,
+  sceneDefinition: ChapterSceneDefinition
 ) {
   const disposables: Disposable[] = [];
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x101813);
-  scene.fog = new THREE.FogExp2(0x101813, 0.028);
+  scene.background = new THREE.Color(sceneDefinition.skyColor);
+  scene.fog = new THREE.FogExp2(sceneDefinition.fogColor, sceneDefinition.id === "sprout-seeking-ravine" ? 0.038 : 0.028);
 
   const camera = new THREE.PerspectiveCamera(62, mount.clientWidth / mount.clientHeight, 0.1, 180);
-  camera.position.set(2.26, 2.69, 4.39);
+  camera.position.set(...sceneDefinition.camera.position);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -114,16 +134,16 @@ function mountGraybudVillage(
   const world = new THREE.Group();
   scene.add(world);
 
-  const ambient = new THREE.HemisphereLight(0xb8cfc6, 0x2a1b12, 0.55);
+  const ambient = new THREE.HemisphereLight(0xb8cfc6, 0x2a1b12, sceneDefinition.ambientIntensity);
   scene.add(ambient);
 
-  const moon = new THREE.DirectionalLight(0x9db6c7, 0.65);
+  const moon = new THREE.DirectionalLight(0x9db6c7, sceneDefinition.moonIntensity);
   moon.position.set(-9, 16, 8);
   moon.castShadow = true;
   moon.shadow.mapSize.set(1024, 1024);
   scene.add(moon);
 
-  const fireLight = new THREE.PointLight(0xff7a2a, 16, 24, 1.4);
+  const fireLight = new THREE.PointLight(0xff7a2a, sceneDefinition.fireIntensity, 24, 1.4);
   fireLight.position.set(0, 1.25, 0);
   fireLight.castShadow = true;
   scene.add(fireLight);
@@ -164,14 +184,14 @@ function mountGraybudVillage(
   const registerCharacterToGui = (animator: CharacterAnimator, equipment: CharacterEquipment) => {
     sceneGui?.registerCharacter(animator, equipment, { THREE, loadModelById });
   };
+  const sceneNpcs = getNpcsForScene(sceneDefinition.id);
 
-  createGround(THREE, world, disposables);
-  createHearth(THREE, world, disposables);
-  createHouses(THREE, world, disposables);
-  createVillageDetails(THREE, world, disposables);
+  createGround(THREE, world, disposables, sceneDefinition);
+  createSceneFeatures(THREE, world, disposables, sceneDefinition);
   createForestRing(THREE, world, disposables);
   createDistantHills(THREE, scene, disposables);
   createStarfield(THREE, scene, disposables);
+  void loadChapterSceneAssets(THREE, world, sceneDefinition, disposables, () => sceneDisposed);
 
   void loadCharacterWithAnimations(
     THREE,
@@ -202,7 +222,7 @@ function mountGraybudVillage(
       }
       bounds.setFromObject(character);
       playerFootOffsetY = -bounds.min.y;
-      character.position.set(0, playerFootOffsetY, 5.2);
+      character.position.set(sceneDefinition.spawn[0], playerFootOffsetY + sceneDefinition.spawn[1], sceneDefinition.spawn[2]);
       character.rotation.y = -1.208;
       world.add(character);
 
@@ -244,7 +264,7 @@ function mountGraybudVillage(
     });
 
   void Promise.all(
-    HEARTH_VILLAGE_NPCS.map((definition) => spawnVillageNpc(THREE, world, loadModelById, definition, disposables))
+    sceneNpcs.map((definition) => spawnVillageNpc(THREE, world, loadModelById, definition, disposables, sceneDefinition.id))
   )
     .then((npcs) => {
       if (sceneDisposed) {
@@ -255,13 +275,13 @@ function mountGraybudVillage(
       for (const npc of npcs) {
         characterAnimators.push(npc.animator);
       }
-      console.info("[hearth] village npcs:", npcs.map((npc) => npc.definition.name).join(", "));
+      console.info("[hearth] scene npcs:", npcs.map((npc) => npc.definition.name).join(", "));
     })
     .catch((error: unknown) => {
       console.error("Failed to load village npc:", error);
     });
 
-  void (async () => {
+  if (sceneDefinition.id === "gray-sprout-hearth") void (async () => {
     try {
       const ualEntry = await getModelEntry("characters.prototype.ual.standard");
       const ualAvailable = await isModelUrlAvailable(ualEntry.path);
@@ -490,8 +510,8 @@ function mountGraybudVillage(
         );
       }
     } else if (!playerCharacter || !playerAnimator) {
-      camera.position.set(2.26, 2.69, 4.39);
-      camera.lookAt(0, 1.5, 5.2);
+      camera.position.set(...sceneDefinition.camera.position);
+      camera.lookAt(...sceneDefinition.camera.lookAt);
     }
 
     updateVillageAnimation(animated, fireLight, lighting, elapsed);
@@ -593,9 +613,14 @@ function updateVillageAnimation(
   });
 }
 
-function createGround(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
-  const groundMat = new THREE.MeshStandardMaterial({ color: 0x314234, roughness: 0.96 });
-  const pathMat = new THREE.MeshStandardMaterial({ color: 0x6b5a3f, roughness: 1 });
+function createGround(
+  THREE: ThreeModule,
+  parent: any,
+  disposables: Disposable[],
+  sceneDefinition: ChapterSceneDefinition
+) {
+  const groundMat = new THREE.MeshStandardMaterial({ color: sceneDefinition.groundColor, roughness: 0.96 });
+  const pathMat = new THREE.MeshStandardMaterial({ color: sceneDefinition.pathColor, roughness: 1 });
   disposables.push(groundMat, pathMat);
 
   const ground = new THREE.Mesh(new THREE.CircleGeometry(32, 96), groundMat);
@@ -617,6 +642,61 @@ function createGround(THREE: ThreeModule, parent: any, disposables: Disposable[]
     mesh.receiveShadow = true;
     parent.add(mesh);
     disposables.push(mesh.geometry);
+  }
+}
+
+function createSceneFeatures(
+  THREE: ThreeModule,
+  parent: any,
+  disposables: Disposable[],
+  sceneDefinition: ChapterSceneDefinition
+) {
+  if (sceneDefinition.features.includes("hearth")) createHearth(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("houses")) createHouses(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("ancestorPoles")) {
+    createTotemPole(THREE, parent, disposables, -2.7, -2.1);
+    createTotemPole(THREE, parent, disposables, 2.8, -2.0);
+  }
+  if (sceneDefinition.features.includes("herbRacks")) createHerbRacks(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("creek")) createCreek(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("ravine")) createRavine(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("huntingBlind")) createHuntingBlind(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("cart")) createHerbCart(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("oxTracks")) createOxTracks(THREE, parent, disposables);
+}
+
+async function loadChapterSceneAssets(
+  THREE: ThreeModule,
+  parent: any,
+  sceneDefinition: ChapterSceneDefinition,
+  disposables: Disposable[],
+  isDisposed: () => boolean
+) {
+  const loaded = await Promise.allSettled(
+    sceneDefinition.assets.map(async (placement) => {
+      const gltf = await loadModelById(THREE, placement.modelId);
+      return { placement, object: (gltf.scene as any).clone(true) };
+    })
+  );
+
+  for (const result of loaded) {
+    if (isDisposed()) return;
+    if (result.status === "rejected") {
+      console.warn("[chapter-scene] asset skipped:", result.reason);
+      continue;
+    }
+
+    const { placement, object } = result.value;
+    object.position.set(...placement.position);
+    if (placement.rotation) object.rotation.set(...placement.rotation);
+    object.scale.setScalar(placement.scale ?? 1);
+    object.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    parent.add(object);
   }
 }
 
@@ -764,6 +844,190 @@ function createGraybudHouse(THREE: ThreeModule, scale: number, disposables: Disp
   }
 
   return group;
+}
+
+function createHerbRacks(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x3c2819, roughness: 0.94 });
+  const herbMat = new THREE.MeshStandardMaterial({ color: 0x7fa45a, roughness: 0.88 });
+  const clothMat = new THREE.MeshStandardMaterial({ color: 0x92744d, roughness: 0.92 });
+  disposables.push(woodMat, herbMat, clothMat);
+
+  const racks = [
+    { x: -4.2, z: 3.3, ry: 0.4 },
+    { x: 4.4, z: 3.2, ry: -0.35 },
+    { x: -1.8, z: 6.3, ry: 0 },
+    { x: 2.2, z: -2.8, ry: 0.2 }
+  ];
+
+  for (const rack of racks) {
+    const group = new THREE.Group();
+    group.position.set(rack.x, 0, rack.z);
+    group.rotation.y = rack.ry;
+    parent.add(group);
+
+    for (const x of [-0.6, 0.6]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 1.45, 6), woodMat);
+      post.position.set(x, 0.72, 0);
+      post.castShadow = true;
+      group.add(post);
+      disposables.push(post.geometry);
+    }
+
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.45, 6), woodMat);
+    beam.position.y = 1.3;
+    beam.rotation.z = Math.PI / 2;
+    beam.castShadow = true;
+    group.add(beam);
+    disposables.push(beam.geometry);
+
+    for (let i = 0; i < 6; i += 1) {
+      const herb = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.45, 5), herbMat);
+      herb.position.set(-0.45 + i * 0.18, 0.95, 0.02);
+      herb.rotation.x = Math.PI;
+      herb.castShadow = true;
+      group.add(herb);
+      disposables.push(herb.geometry);
+    }
+
+    const mat = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.025, 0.55), clothMat);
+    mat.position.set(0, 0.06, -0.34);
+    mat.receiveShadow = true;
+    group.add(mat);
+    disposables.push(mat.geometry);
+  }
+}
+
+function createCreek(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x365b67,
+    emissive: 0x102c34,
+    emissiveIntensity: 0.28,
+    roughness: 0.42,
+    transparent: true,
+    opacity: 0.78
+  });
+  const saltMat = new THREE.MeshStandardMaterial({ color: 0xd9d1b7, roughness: 0.7 });
+  disposables.push(waterMat, saltMat);
+
+  const creek = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.035, 18), waterMat);
+  creek.position.set(0.8, 0.04, -1.4);
+  creek.rotation.y = -0.18;
+  creek.receiveShadow = true;
+  parent.add(creek);
+  disposables.push(creek.geometry);
+
+  for (let i = 0; i < 22; i += 1) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const salt = new THREE.Mesh(new THREE.BoxGeometry(0.5 + (i % 3) * 0.16, 0.018, 0.08), saltMat);
+    salt.position.set(0.8 + side * (1.1 + Math.sin(i) * 0.18), 0.065, -8 + i * 0.72);
+    salt.rotation.y = Math.sin(i * 1.3) * 0.7;
+    parent.add(salt);
+    disposables.push(salt.geometry);
+  }
+}
+
+function createRavine(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x2b3029, roughness: 1 });
+  disposables.push(rockMat);
+
+  for (let i = 0; i < 16; i += 1) {
+    for (const side of [-1, 1]) {
+      const rock = new THREE.Mesh(new THREE.ConeGeometry(1.2 + Math.random() * 0.7, 1.8 + Math.random() * 1.6, 5), rockMat);
+      rock.position.set(side * (4.2 + Math.random() * 1.2), 0.75, -7 + i * 0.9);
+      rock.rotation.set(Math.random() * 0.18, Math.random() * Math.PI, side * 0.24);
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      parent.add(rock);
+      disposables.push(rock.geometry);
+    }
+  }
+}
+
+function createHuntingBlind(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x2e2117, roughness: 0.96 });
+  const hideMat = new THREE.MeshStandardMaterial({ color: 0x8d6848, roughness: 0.94 });
+  disposables.push(woodMat, hideMat);
+
+  const blind = new THREE.Group();
+  blind.position.set(-2.2, 0, 2.7);
+  blind.rotation.y = 0.32;
+  parent.add(blind);
+
+  for (const x of [-0.7, 0.7]) {
+    for (const z of [-0.35, 0.35]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 1.6, 6), woodMat);
+      post.position.set(x, 0.8, z);
+      post.castShadow = true;
+      blind.add(post);
+      disposables.push(post.geometry);
+    }
+  }
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 0.95), woodMat);
+  deck.position.y = 0.82;
+  deck.castShadow = true;
+  deck.receiveShadow = true;
+  blind.add(deck);
+  disposables.push(deck.geometry);
+
+  const screen = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.72, 0.06), hideMat);
+  screen.position.set(0, 1.26, -0.44);
+  screen.castShadow = true;
+  blind.add(screen);
+  disposables.push(screen.geometry);
+}
+
+function createHerbCart(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2f1d, roughness: 0.94 });
+  const herbMat = new THREE.MeshStandardMaterial({ color: 0x8da75e, roughness: 0.85 });
+  disposables.push(woodMat, herbMat);
+
+  const cart = new THREE.Group();
+  cart.position.set(-1.8, 0, 2.6);
+  cart.rotation.y = -0.24;
+  parent.add(cart);
+
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.35, 1.1), woodMat);
+  bed.position.y = 0.48;
+  bed.castShadow = true;
+  cart.add(bed);
+  disposables.push(bed.geometry);
+
+  for (const x of [-0.9, 0.9]) {
+    for (const z of [-0.62, 0.62]) {
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.12, 12), woodMat);
+      wheel.position.set(x, 0.28, z);
+      wheel.rotation.z = Math.PI / 2;
+      wheel.castShadow = true;
+      cart.add(wheel);
+      disposables.push(wheel.geometry);
+    }
+  }
+
+  for (let i = 0; i < 11; i += 1) {
+    const bundle = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.72, 6), herbMat);
+    bundle.position.set(-0.85 + i * 0.17, 0.88, Math.sin(i) * 0.2);
+    bundle.rotation.x = Math.PI / 2 + Math.sin(i) * 0.28;
+    bundle.castShadow = true;
+    cart.add(bundle);
+    disposables.push(bundle.geometry);
+  }
+}
+
+function createOxTracks(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  const trackMat = new THREE.MeshStandardMaterial({ color: 0x1d1a14, roughness: 1 });
+  disposables.push(trackMat);
+
+  for (let i = 0; i < 18; i += 1) {
+    const z = 5.2 - i * 0.58;
+    for (const x of [-0.42, 0.42]) {
+      const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.018, 0.42), trackMat);
+      hoof.position.set(x + Math.sin(i * 0.8) * 0.16, 0.055, z);
+      hoof.rotation.y = Math.sin(i * 0.4) * 0.4;
+      parent.add(hoof);
+      disposables.push(hoof.geometry);
+    }
+  }
 }
 
 function createVillageDetails(THREE: ThreeModule, parent: any, disposables: Disposable[]) {

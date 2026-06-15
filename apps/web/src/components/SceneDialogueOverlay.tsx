@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState } from "react";
+import type { ChapterQuestStep } from "../chapterQuestline";
 import { fetchNpcDialogue, type NpcChatMessage } from "../npcDialogueApi";
 import type { NpcDialoguePayload } from "../villageNpcs";
 
 type SceneDialogueOverlayProps = {
   nearNpc: { id: string; name: string; title: string } | null;
   dialogue: NpcDialoguePayload | null;
+  activeQuest?: ChapterQuestStep | null;
+  onQuestComplete?: (questId: string) => void;
   onClose: () => void;
 };
 
-export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialogueOverlayProps) {
+export function SceneDialogueOverlay({
+  nearNpc,
+  dialogue,
+  activeQuest = null,
+  onQuestComplete,
+  onClose
+}: SceneDialogueOverlayProps) {
   const [messages, setMessages] = useState<NpcChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,6 +53,7 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
           npcTitle: dialogue.title,
           persona: dialogue.persona,
           sceneContext: dialogue.sceneContext,
+          fallbackLines: dialogue.fallbackLines,
           messages: []
         });
         if (cancelled || requestId !== requestIdRef.current) return;
@@ -90,6 +100,7 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
         npcTitle: dialogue.title,
         persona: dialogue.persona,
         sceneContext: dialogue.sceneContext,
+        fallbackLines: dialogue.fallbackLines,
         messages: nextMessages
       });
       setMessages([...nextMessages, { role: "assistant", content: result.reply }]);
@@ -103,6 +114,8 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
   }
 
   if (dialogue) {
+    const isQuestNpc = Boolean(activeQuest && activeQuest.npcId === dialogue.id);
+
     return (
       <div className="scene-dialogue-backdrop" role="presentation" onClick={onClose}>
         <section
@@ -121,7 +134,7 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
               <h2 id="scene-dialogue-title">{dialogue.name}</h2>
             </div>
             <button type="button" className="scene-dialogue-close" onClick={onClose} aria-label="关闭对话">
-              ×
+              x
             </button>
           </header>
           <div className="scene-dialogue-body" ref={bodyRef}>
@@ -131,7 +144,7 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
                   {dialogue.name.slice(0, 1)}
                 </div>
                 <div className="scene-dialogue-bubble scene-dialogue-bubble-npc scene-dialogue-bubble-typing">
-                  <p className="scene-dialogue-status">萨满正在组织语言…</p>
+                  <p className="scene-dialogue-status">正在组织语言...</p>
                 </div>
               </div>
             ) : null}
@@ -170,7 +183,7 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
                   {dialogue.name.slice(0, 1)}
                 </div>
                 <div className="scene-dialogue-bubble scene-dialogue-bubble-npc scene-dialogue-bubble-typing">
-                  <p className="scene-dialogue-status">思考中…</p>
+                  <p className="scene-dialogue-status">思考中...</p>
                 </div>
               </div>
             ) : null}
@@ -178,6 +191,25 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
             {notice ? <p className="scene-dialogue-notice">{notice}</p> : null}
           </div>
           <footer className="scene-dialogue-footer">
+            {activeQuest ? (
+              <section className={isQuestNpc ? "scene-dialogue-quest active" : "scene-dialogue-quest"}>
+                <div>
+                  <span>{isQuestNpc ? "当前任务" : "任务线索"}</span>
+                  <strong>{activeQuest.title}</strong>
+                  <p>{isQuestNpc ? activeQuest.completionLine : `当前任务需要找 ${activeQuest.npcName}。`}</p>
+                </div>
+                <ul>
+                  {activeQuest.objectives.map((objective) => (
+                    <li key={objective}>{objective}</li>
+                  ))}
+                </ul>
+                {isQuestNpc && onQuestComplete ? (
+                  <button type="button" className="scene-dialogue-button" onClick={() => onQuestComplete(activeQuest.id)}>
+                    推进任务
+                  </button>
+                ) : null}
+              </section>
+            ) : null}
             <form
               className="scene-dialogue-form"
               onSubmit={(event) => {
@@ -188,7 +220,7 @@ export function SceneDialogueOverlay({ nearNpc, dialogue, onClose }: SceneDialog
               <input
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="继续提问…"
+                placeholder="继续提问..."
                 disabled={loading}
                 aria-label="对话输入"
               />

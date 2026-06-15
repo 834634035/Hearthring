@@ -4,8 +4,8 @@ import { useAuth } from "./auth";
 import { Shell } from "./components/Shell";
 import { AccountPage } from "./pages/AccountPage";
 import { AdminPage } from "./pages/AdminPage";
+import { ChapterPlanPage } from "./pages/ChapterPlanPage";
 import { Dashboard } from "./pages/Dashboard";
-import { HearthPage } from "./pages/HearthPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MapPage } from "./pages/MapPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -28,8 +28,8 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/users" element={<UsersPage />} />
-              <Route path="/hearth" element={<HearthPage />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/chapter-plan" element={<ChapterPlanPage />} />
               {adminEntities.map((entity) => (
                 <Route key={entity.key} path={`/${entity.key}`} element={<AdminPage entity={entity.key} />} />
               ))}

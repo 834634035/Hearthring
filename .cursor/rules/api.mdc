@@ -1,0 +1,25 @@
+---
+description: API 层与共享包约定
+globs: apps/api/src/**/*,packages/shared/src/**/*
+alwaysApply: false
+---
+
+# API 结构
+
+- `server.ts` — HTTP 路由、认证、权限校验
+- `db.ts` — MySQL 读写（`listRows`、`createRow`、`updateRow`、`deleteRow`）
+- `seed.ts` — 种子数据
+- 端口默认 4000；前端通过 Vite proxy 访问 `/api`
+
+# 实体与数据库
+
+- 实体 key、字段白名单、表名均在 `packages/shared/src/entities/` 定义
+- API 用 `assertEntity()` 校验实体名，用 `entityFieldKeys` 过滤可写字段
+- 权限：`canReadContent` / `canWriteContent` / `canManageUsers`（来自 shared）
+
+# 编码约定
+
+- ESM + TypeScript，导入带 `.ts` 后缀（如 `./db.ts`）
+- 错误响应返回文本或 JSON，前端 `apiGet` 会 `throw new Error`
+- 认证用 Bearer token + session 表，不改现有 auth 流程除非明确要求
+- 新增实体后运行 `npm run db:seed` 验证表结构与种子数据

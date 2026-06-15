@@ -6,7 +6,8 @@ export const CRUD_ENTITIES = [
   "resources",
   "creatures",
   "factions",
-  "events"
+  "events",
+  "artifacts"
 ] as const;
 
 export type CrudEntity = (typeof CRUD_ENTITIES)[number];

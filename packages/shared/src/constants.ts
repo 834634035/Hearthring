@@ -1,4 +1,4 @@
-export const continents = ["东大陆", "西大陆"] as const;
+﻿export const continents = ["东大陆", "西大陆"] as const;
 
 /** 部落「区域」下拉与 seed 共用的规范地名 */
 export const regions = [
@@ -18,4 +18,5 @@ export const hearthStates = ["强盛", "稳定", "衰弱", "火浊", "沉默", "
 
 export const shardGrades = ["低级曜石", "中级曜石", "高级曜石", "特级曜石", "王级曜石"] as const;
 
-export const factionTypes = ["部落", "支属", "商会", "奴隶主集团", "部落联盟", "王权雏形"] as const;
+export const factionTypes = ["部落", "支属", "商会", "奴隶主集团", "部落联盟", "王权雏形", "部落联盟 / 王权雏形", "战争派系"] as const;
+

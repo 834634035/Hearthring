@@ -165,7 +165,7 @@ function createContinentOption(dashboard: DashboardData | null): EChartsOption {
   })) ?? [];
 
   return {
-    color: ["#2d6559", "#8f4f35", "#293c5c", "#c58b58", "#6b9b73"],
+    color: ["#9b5a2e", "#6b5a2d", "#4d3b2f", "#c58b58", "#b7834f"],
     tooltip: { trigger: "item", valueFormatter: (value) => formatNumber(Number(value)) },
     legend: { bottom: 0, left: "center", itemWidth: 10, itemHeight: 10, textStyle: { color: "#5d665d" } },
     series: [
@@ -185,7 +185,7 @@ function createContinentOption(dashboard: DashboardData | null): EChartsOption {
 function createAgeOption(dashboard: DashboardData | null): EChartsOption {
   const items = dashboard?.ageDistribution ?? [];
   return {
-    color: ["#2d6559", "#6b9b73", "#c58b58", "#8f4f35"],
+    color: ["#9b5a2e", "#c58b58", "#6b5a2d", "#4d3b2f"],
     tooltip: { trigger: "item", valueFormatter: (value) => formatNumber(Number(value)) },
     legend: { bottom: 0, left: "center", itemWidth: 10, itemHeight: 10, textStyle: { color: "#5d665d" } },
     series: [
@@ -203,7 +203,7 @@ function createAgeOption(dashboard: DashboardData | null): EChartsOption {
 function createTribeOption(dashboard: DashboardData | null): EChartsOption {
   const tribes = [...(dashboard?.tribePopulations ?? [])].reverse();
   return {
-    color: ["#8f4f35"],
+    color: ["#9b5a2e"],
     grid: { left: 72, right: 56, top: 10, bottom: 28 },
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (value) => formatNumber(Number(value)) },
     xAxis: {
@@ -244,7 +244,7 @@ function createTimelineOption(dashboard: DashboardData | null): EChartsOption {
   const entries = [...counts.entries()];
 
   return {
-    color: ["#293c5c"],
+    color: ["#6b5a2d"],
     grid: { left: 28, right: 16, top: 12, bottom: 36 },
     tooltip: { trigger: "axis" },
     xAxis: {

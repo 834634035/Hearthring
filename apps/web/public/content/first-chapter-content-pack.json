@@ -1,0 +1,200 @@
+{
+  "id": "chapter-01-hearth-sprout",
+  "title": "第一章：灰芽寻火",
+  "purpose": {
+    "emotion": "让玩家先相信青岚属于灰芽部落。",
+    "worldbuilding": "用生活细节解释火塘、支火、支属、图腾回应和成人礼。",
+    "gameplay": "建立探索、采集、对话、轻量战斗、救援和线索收集的基础循环。",
+    "plot": "埋下青岚真实来历、王兽异动、鹿角主支压力和西方异常水脉。"
+  },
+  "scenes": [
+    {
+      "id": "gray-sprout-hearth",
+      "name": "灰芽火塘",
+      "type": "settlement-core",
+      "summary": "灰芽部落中心，小型支火火塘保存祖名、祭歌和鹿角旁支身份。",
+      "interactions": ["添柴", "查看祖名木牌", "学习药草", "照看幼兽", "触发潮声错觉"],
+      "assetIds": [
+        "environment.rocks.stylizedNature.rockMedium1",
+        "environment.rocks.stylizedNature.pebbleRound1",
+        "environment.groundCover.stylizedNature.grassCommonShort",
+        "environment.groundCover.stylizedNature.plant1",
+        "environment.trees.stylizedNature.commonTree1"
+      ]
+    },
+    {
+      "id": "gray-sprout-herb-field",
+      "name": "灰芽药草地",
+      "type": "gathering-area",
+      "summary": "灰芽最重要的生计来源，近年被主部落要求上交更多贡草。",
+      "interactions": ["采集青息芽", "采集止血苔", "检查异常兽蹄", "听见水声异响"],
+      "assetIds": [
+        "environment.groundCover.stylizedNature.fern1",
+        "environment.groundCover.stylizedNature.plant7",
+        "environment.groundCover.stylizedNature.clover1",
+        "environment.mushrooms.stylizedNature.mushroomCommon",
+        "environment.bushes.stylizedNature.bushCommonFlowers"
+      ]
+    },
+    {
+      "id": "sprout-seeking-ravine",
+      "name": "寻芽溪谷",
+      "type": "rite-location",
+      "summary": "青岚成人礼中偏离旧鹿径后抵达的溪谷，藏有带盐痕的青息芽。",
+      "interactions": ["穿雾辨路", "采集盐痕青息芽", "检查盐痕", "触发鹿角纹与潮纹交叠"],
+      "assetIds": [
+        "environment.trees.stylizedNature.twistedTree1",
+        "environment.rocks.stylizedNature.rockPathRoundThin",
+        "environment.flowers.stylizedNature.flower3Single",
+        "environment.groundCover.stylizedNature.grassWispyTall"
+      ]
+    },
+    {
+      "id": "branch-hunting-ground",
+      "name": "支属猎场",
+      "type": "hunting-area",
+      "summary": "灰芽少年第一次参加小猎的区域，用于教学追踪、伏击、救援和猎后分配。",
+      "interactions": ["跟随足迹", "救援伤员", "判断猎物是否可杀", "发现裂甲牛迁徙异常"],
+      "assetIds": [
+        "environment.trees.stylizedNature.commonTree3",
+        "environment.bushes.stylizedNature.bushCommon",
+        "environment.rocks.stylizedNature.rockMedium2",
+        "props.weapons.kaykit.bowWithString",
+        "props.weapons.kaykit.quiver"
+      ]
+    },
+    {
+      "id": "joint-hunt-grassland",
+      "name": "共猎草场",
+      "type": "joint-hunt-area",
+      "summary": "鹿角多个支属联合猎裂甲牛的场景，用于展示支属协作和主部落压力。",
+      "interactions": ["协助引路", "照看伤员", "保护贡草车", "观察地脉震动"],
+      "assetIds": [
+        "environment.groundCover.stylizedNature.grassCommonTall",
+        "environment.rocks.stylizedNature.rockMedium3",
+        "environment.trees.stylizedNature.commonTree5",
+        "props.weapons.kaykit.bow",
+        "props.weapons.kaykit.arrowBowBundle"
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "qinglan",
+      "name": "青岚 / 阿澜",
+      "role": "主角，灰芽少年，听潮遗孤",
+      "tribeName": "灰芽部落",
+      "secretLevel": 5,
+      "knowledge": "真心相信自己属于灰芽；只能感到水声、雾、火塘和图腾回应之间的裂缝，无法解释来源。",
+      "motivation": "通过寻芽礼，成为能被支属狩猎队承认的人。"
+    },
+    {
+      "id": "gray-sprout-foster-father",
+      "name": "灰芽养父",
+      "role": "支属猎手",
+      "tribeName": "灰芽部落",
+      "secretLevel": 2,
+      "knowledge": "知道青岚来自危险托付，不知道西大陆和听潮部落。",
+      "motivation": "让青岚被灰芽真正接纳，同时避免他被外部势力带走。"
+    },
+    {
+      "id": "gray-sprout-foster-mother",
+      "name": "灰芽养母",
+      "role": "药草照料者",
+      "tribeName": "灰芽部落",
+      "secretLevel": 2,
+      "knowledge": "知道青岚不是本族血脉，但相信火塘已经接纳他。",
+      "motivation": "守住家庭和药草地，不让主支压力吞掉灰芽的日常。"
+    },
+    {
+      "id": "gray-sprout-shaman",
+      "name": "灰芽巫",
+      "role": "支火巫",
+      "tribeName": "灰芽部落",
+      "secretLevel": 3,
+      "knowledge": "知道青岚入火异常，知道眠梦托付有问题，不知道完整西大陆真相。",
+      "motivation": "保护灰芽支火，同时避免异常暴露给主部落和赤牙。"
+    },
+    {
+      "id": "deer-horn-envoy",
+      "name": "鹿角主部落使者",
+      "role": "贡草与猎手征调使者",
+      "tribeName": "鹿角主部落",
+      "secretLevel": 1,
+      "knowledge": "知道主部落正在备灾，不知道赤牙猎王全貌。",
+      "motivation": "集中药草、猎手和高级曜石储备，应对未知灾前压力。"
+    },
+    {
+      "id": "li",
+      "name": "砾",
+      "role": "灰芽同龄少年",
+      "tribeName": "灰芽部落",
+      "secretLevel": 0,
+      "knowledge": "完全不知道青岚身世。",
+      "motivation": "想比青岚更早被猎队认可。"
+    }
+  ],
+  "quests": [
+    {
+      "id": "q1-hearth-morning-lesson",
+      "title": "守火晨课",
+      "sceneId": "gray-sprout-hearth",
+      "objectives": ["添柴", "整理祖名木牌", "向灰芽巫回报火色"],
+      "conflict": "青岚短暂听见火中有潮声。",
+      "reward": "解锁火塘、祖名、支火基础说明。"
+    },
+    {
+      "id": "q2-herb-field-chores",
+      "title": "药草地杂务",
+      "sceneId": "gray-sprout-herb-field",
+      "objectives": ["采集青息芽", "采集止血苔", "采集苦根草"],
+      "conflict": "发现药草地边缘被异常兽蹄踩坏。",
+      "reward": "解锁采集系统、药草图鉴。"
+    },
+    {
+      "id": "q3-sprout-seeking-rite",
+      "title": "寻芽礼",
+      "sceneId": "sprout-seeking-ravine",
+      "objectives": ["独自进入旧鹿径", "找到青息芽", "带回火塘献祭"],
+      "conflict": "青岚偏离传统路线，带回带有盐痕的青息芽。",
+      "reward": "通过成人礼，解锁支属狩猎队资格。"
+    },
+    {
+      "id": "q4-rescue-in-fog",
+      "title": "雾中救援",
+      "sceneId": "branch-hunting-ground",
+      "objectives": ["跟随猎队小猎", "救下受伤猎手", "完成猎后分配"],
+      "conflict": "青岚需要在追猎和救人之间做选择。",
+      "reward": "获得猎队认可，解锁草药急救。"
+    },
+    {
+      "id": "q5-cracked-ox-joint-hunt",
+      "title": "裂甲牛共猎",
+      "sceneId": "joint-hunt-grassland",
+      "objectives": ["协助支属引兽", "保护贡草车", "稳定伤员"],
+      "conflict": "裂甲牛群迁徙方向异常，差点冲散贡草队。",
+      "reward": "解锁支属协作、共猎分配和鹿角主支压力。"
+    },
+    {
+      "id": "q6-bitter-water-clue",
+      "title": "苦水线索",
+      "sceneId": "sprout-seeking-ravine",
+      "objectives": ["调查变苦溪水", "记录动物避水行为", "向灰芽巫回报"],
+      "conflict": "水脉像被远方拖拽，青岚无法解释。",
+      "reward": "埋入云箕巫徒箕雨登场线索。"
+    }
+  ],
+  "databaseSuggestions": {
+    "characters": ["青岚 / 阿澜", "灰芽养父", "灰芽养母", "灰芽巫", "鹿角主部落使者", "砾"],
+    "settlements": ["灰芽火塘", "灰芽药草地", "寻芽溪谷", "支属猎场", "共猎草场"],
+    "resources": ["青息芽", "止血苔", "苦根草", "盐痕青息芽", "贡草束"],
+    "events": ["守火晨课", "寻芽礼", "雾中救援", "裂甲牛共猎", "苦水线索"]
+  },
+  "writingRules": [
+    "第一章不要解释西大陆和铜日诸部，只出现海潮错觉、盐痕、苦水、兽群异常。",
+    "灰芽不是弱者村，而是一个小而完整的支火共同体。",
+    "鹿角主部落使者不要写成脸谱反派，他的强硬来自灾前资源压力。",
+    "青岚通过成人礼时，灰芽火塘回应的是接纳，不是揭露身世。",
+    "第一章结尾留下小而不安的画面：裂甲牛不再向旧草场迁徙，溪水在夜里有铜味。"
+  ]
+}

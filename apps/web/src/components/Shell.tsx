@@ -43,13 +43,13 @@ export function Shell({ children }: ShellProps) {
             <span className="nav-symbol">总</span>
             <span>总览</span>
           </NavLink>
-          <NavLink to="/hearth" className={navClass}>
-            <span className="nav-symbol">境</span>
-            <span>灰芽场景</span>
-          </NavLink>
           <NavLink to="/map" className={navClass}>
             <span className="nav-symbol">陆</span>
             <span>大陆地图</span>
+          </NavLink>
+          <NavLink to="/chapter-plan" className={navClass}>
+            <span className="nav-symbol">章</span>
+            <span>第一章策划</span>
           </NavLink>
           <NavLink to="/account" className={navClass}>
             <span className="nav-symbol">钥</span>

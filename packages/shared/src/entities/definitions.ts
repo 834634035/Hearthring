@@ -1,4 +1,4 @@
-import {
+﻿import {
   continents,
   factionTypes,
   hearthStates,
@@ -96,7 +96,7 @@ export const entityDefinitions: Record<CrudEntity, EntityDefinition> = {
     fields: [
       { key: "name", label: "资源名", required: true },
       { key: "category", label: "类别" },
-      { key: "grade", label: "等级", type: "select", options: [...shardGrades, "普通", "战略资源", "血铜器前期认知名"] },
+      { key: "grade", label: "等级", type: "select", options: [...shardGrades, "低级至王级", "普通", "普通至特异", "战略资源", "禁器", "特级信物", "贵重器物", "不可交易", "血铜器前期认知名"] },
       { key: "region", label: "产地/流通地" },
       { key: "rarity", label: "稀有度", type: "number" },
       { key: "useCase", label: "用途", type: "textarea" },
@@ -150,6 +150,25 @@ export const entityDefinitions: Record<CrudEntity, EntityDefinition> = {
       { key: "visibleTo", label: "谁知道", type: "textarea" },
       { key: "hiddenTruth", label: "隐藏真相", type: "textarea" },
       { key: "consequences", label: "后果", type: "textarea" },
+      { key: "description", label: "描述", type: "textarea" }
+    ]
+  },
+  artifacts: {
+    label: "神器",
+    description: "管理图腾遗物、曜石法器、王兽遗蜕与剧情关键器物。",
+    tableName: "artifacts",
+    tableColumns: ["name", "artifactType", "grade", "boundTribe", "status"],
+    fields: [
+      { key: "name", label: "神器名", required: true },
+      { key: "artifactType", label: "类型", type: "select", options: ["武器", "图腾遗物", "曜石法器", "祭器", "王兽遗蜕"] },
+      { key: "grade", label: "品阶", type: "select", options: ["凡品", "灵品", "王品", "传说"] },
+      { key: "origin", label: "来历" },
+      { key: "boundTribe", label: "归属部落" },
+      { key: "status", label: "状态", type: "select", options: ["完好", "碎片", "封印", "失落"] },
+      { key: "powerLevel", label: "威能等级", type: "number" },
+      { key: "ability", label: "能力", type: "textarea" },
+      { key: "restrictions", label: "使用限制", type: "textarea" },
+      { key: "lore", label: "传说", type: "textarea" },
       { key: "description", label: "描述", type: "textarea" }
     ]
   }
