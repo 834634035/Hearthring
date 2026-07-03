@@ -7,6 +7,10 @@ import {
   labelForWeaponId
 } from "./characterEquipment";
 
+/**
+ * Three.js 开发调参面板。
+ * lil-gui 不参与正式玩法，只把相机、移动、灯光、雾效和角色装备参数暴露出来方便现场调试。
+ */
 export type VillageMovementSettings = {
   walkSpeed: number;
   sprintSpeed: number;
@@ -64,6 +68,7 @@ export function attachVillageSceneGui(options: {
   const gui = new GUI({ title: "灰芽火塘地 · 控制", width: 340 });
   gui.domElement.style.zIndex = "30";
 
+  // 记录初始相机参数，便于调乱后快速恢复到场景配置里的默认视角。
   const cameraDefaults = {
     yaw: options.pointer.yaw,
     pitch: options.pointer.pitch,
@@ -76,6 +81,7 @@ export function attachVillageSceneGui(options: {
   const cameraParams = { ...cameraDefaults };
 
   const applyCamera = () => {
+    // 第三人称模式下直接改 pointer；下一帧控制器会用 pointer 重算 Three 相机位置。
     options.pointer.yaw = cameraParams.yaw;
     if (options.pointer.yawTarget !== undefined) {
       options.pointer.yawTarget = cameraParams.yaw;
@@ -144,6 +150,7 @@ export function attachVillageSceneGui(options: {
   fogFolder.open();
 
   const syncFromScene = () => {
+    // 把当前 Three 相机/指针状态同步回 GUI，适合手动绕场景后复制参数。
     cameraParams.yaw = options.pointer.yaw;
     cameraParams.pitch = options.pointer.pitch;
     cameraParams.fov = options.camera.fov;
@@ -197,6 +204,7 @@ export function attachVillageSceneGui(options: {
     characterFolder?.destroy();
     characterFolder = gui.addFolder("角色");
 
+    // 动画列表来自当前 GLTF 的 clipNames，可直接测试 AnimationMixer 里的任意片段。
     const animParams = {
       clip: animator.clipNames.includes("Idle_A") ? "Idle_A" : animator.clipNames[0] ?? ""
     };
@@ -208,6 +216,7 @@ export function attachVillageSceneGui(options: {
       });
 
     const weaponLabels = KAYKIT_WEAPON_OPTIONS.map((option) => option.label);
+    // 装备切换会动态加载模型并挂到角色骨骼插槽上。
     const equipParams = {
       rightWeapon: labelForWeaponId(equipment.getEquippedId("right")),
       leftWeapon: labelForWeaponId(equipment.getEquippedId("left"))

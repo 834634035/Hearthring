@@ -1,5 +1,9 @@
 import { playAttackAnimation, playJumpAnimation, type CharacterAnimator } from "./characterAnimation";
 
+/**
+ * Three.js 第三人称控制器。
+ * 以角色 Object3D、相机和键盘状态为输入，每帧更新移动、朝向、地形起伏和相机跟随。
+ */
 export type ThirdPersonSettings = {
   walkSpeed: number;
   sprintSpeed: number;
@@ -35,6 +39,7 @@ export function triggerPlayerJump(animator: CharacterAnimator) {
 }
 
 function angleDelta(from: number, to: number) {
+  // 把角度差压到 -PI 到 PI，避免角色从 359 度绕远路转回 0 度。
   let delta = (to - from) % (Math.PI * 2);
   if (delta > Math.PI) delta -= Math.PI * 2;
   if (delta < -Math.PI) delta += Math.PI * 2;
@@ -48,10 +53,12 @@ function rotateTowardAngle(from: number, to: number, maxStep: number) {
 }
 
 function smoothStep(delta: number, speed: number) {
+  // 帧率无关的指数平滑，delta 越大单帧追得越多。
   return 1 - Math.exp(-speed * delta);
 }
 
 function terrainLift(x: number, z: number) {
+  // 轻微的程序化地面起伏，让角色 y 轴不完全贴死在平面上。
   return Math.sin(x * 0.12 + z * 0.09) * 0.05;
 }
 
@@ -97,6 +104,7 @@ export function updateThirdPersonPlayer(
   settings: ThirdPersonSettings,
   footOffsetY: number
 ) {
+  // 动作锁用于保护攻击/跳跃等一次性动画，防止移动状态立刻把它覆盖。
   const actionLocked = animator.isActionLocked();
   const jumpLocked = animator.isJumpLocked();
   const movementBlocked = actionLocked && !jumpLocked;
@@ -111,6 +119,7 @@ export function updateThirdPersonPlayer(
     camera,
     fallbackYaw
   );
+  // moveDelta 使用 Three.Vector3 汇总 WASD 输入，再统一归一化，保证斜向移动不超速。
   const moveDelta = new THREE.Vector3();
 
   if (!movementBlocked) {
@@ -156,6 +165,7 @@ export function updateThirdPersonPlayer(
   character.position.z = THREE.MathUtils.clamp(character.position.z, -18, 18);
   character.position.y = footOffsetY + terrainLift(character.position.x, character.position.z);
 
+  // 根据移动状态驱动 AnimationMixer 中的待机/行走/奔跑循环。
   if (!actionLocked && !animator.isManualMode()) {
     if (!moving) {
       animator.setLocomotion("idle");
@@ -172,6 +182,7 @@ export function updateThirdPersonPlayer(
     character.position.z
   );
 
+  // 相机位置由角色朝向、鼠标环绕 yaw/pitch 和跟随距离共同决定。
   const orbitYaw = cameraYawFromCharacter(character.rotation.y, pointer.yaw);
   const cosPitch = Math.cos(pointer.pitch);
   const sinPitch = Math.sin(pointer.pitch);

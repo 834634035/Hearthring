@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
 
+/**
+ * 登录页的 Three.js 背景。
+ * 它是纯展示场景，不参与游戏状态，只负责火塘、森林剪影、星空和背景动效。
+ */
 export function LoginHearthBackground() {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
@@ -13,6 +17,7 @@ export function LoginHearthBackground() {
 
     void import(/* @vite-ignore */ threeModuleUrl).then((THREE) => {
       if (disposed) return;
+      // 登录页按需加载 Three，避免未进入 3D 页面时增加主包体积。
       cleanup = mountLoginHearth(THREE, mount);
     });
 
@@ -27,6 +32,7 @@ export function LoginHearthBackground() {
 
 function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   const disposables: Array<{ dispose?: () => void }> = [];
+  // 独立 Scene + PerspectiveCamera，专门为登录页构图，不复用游戏主场景。
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x081018);
   scene.fog = new THREE.FogExp2(0x0a1520, 0.052);
@@ -36,6 +42,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   camera.lookAt(new THREE.Vector3(0, 1.38, -0.12));
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  // 背景铺满容器，DPR 限制在 2 以内，兼顾清晰度和性能。
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(mount.clientWidth, mount.clientHeight);
   mount.appendChild(renderer.domElement);
@@ -51,6 +58,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   createLoginDistantMountains(THREE, scene, disposables);
 
   const hearthGroup = new THREE.Group();
+  // 火塘整体下移，让火焰从登录表单后方升起，形成前景/背景层次。
   hearthGroup.position.y = -0.85;
   scene.add(hearthGroup);
 
@@ -63,6 +71,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   hearthGroup.add(fireWarmth);
 
   const swaying: Array<{ group: any; phase: number; speed: number; sway: number }> = [];
+  // 树木是低面数剪影，位置和摆动相位随机化，避免背景过于机械。
   for (const cfg of [
     { x: -9.5, z: -5.8, scale: 3.4 },
     { x: -7.0, z: -7.2, scale: 2.9 },
@@ -90,6 +99,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   createLoginHearthCore(THREE, hearthGroup, disposables);
 
   const flameGroup = new THREE.Group();
+  // 火焰分为主火三层和外圈小火舌，后续 RAF 会分别做缩放/摇摆。
   const flameLayers: Array<{ mesh: any; baseX: number; baseZ: number; phase: number; speed: number }> = [];
   const mainOuter = createLoginFlameMesh(THREE, 0.95, 3.2, 0xff5a18, 0xff3a10, 1.6, 0.78, disposables);
   const mainInner = createLoginFlameMesh(THREE, 0.52, 2.3, 0xffe8b0, 0xffb040, 2.0, 0.88, disposables);
@@ -117,6 +127,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   hearthGroup.add(flameGroup);
 
   const emberCount = 72;
+  // 余烬使用 Points + BufferGeometry，批量更新顶点比创建许多 Mesh 更轻。
   const emberPositions = new Float32Array(emberCount * 3);
   for (let i = 0; i < emberCount; i += 1) {
     const angle = Math.random() * Math.PI * 2;
@@ -142,6 +153,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   let frame = 0;
   let animationFrame = 0;
   const animate = () => {
+    // 这个背景没有物理/输入，使用简单时间累加驱动展示动效即可。
     frame += 0.016;
     const pulse = 1 + Math.sin(frame * 2.4) * 0.04;
     mainOuter.scale.set(pulse * 1.01, pulse * (1 + Math.cos(frame * 1.8) * 0.06), pulse);
@@ -178,6 +190,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   animate();
 
   const resize = () => {
+    // 容器尺寸变化时同步相机宽高比和 renderer 尺寸，避免画面拉伸。
     camera.aspect = mount.clientWidth / mount.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -185,6 +198,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
   window.addEventListener("resize", resize);
 
   return () => {
+    // React 卸载时取消 RAF，并释放所有 geometry/material 与 renderer。
     window.removeEventListener("resize", resize);
     cancelAnimationFrame(animationFrame);
     for (const item of disposables) item.dispose?.();
@@ -196,6 +210,7 @@ function mountLoginHearth(THREE: any, mount: HTMLDivElement) {
 }
 
 function createLoginStarfield(THREE: any, scene: any, disposables: Array<{ dispose?: () => void }>) {
+  // 登录页星空是一次性生成的 Points 云，不需要每帧改动。
   const count = 340;
   const positions = new Float32Array(count * 3);
   for (let i = 0; i < count; i += 1) {
@@ -214,6 +229,7 @@ function createLoginStarfield(THREE: any, scene: any, disposables: Array<{ dispo
 }
 
 function createLoginDistantMountains(THREE: any, scene: any, disposables: Array<{ dispose?: () => void }>) {
+  // 远山用多层深色基础材质配合 fog，形成低成本景深。
   for (const layer of [
     { z: -22, color: 0x14242a, height: 6 },
     { z: -30, color: 0x0f1a20, height: 8 },
@@ -231,6 +247,7 @@ function createLoginDistantMountains(THREE: any, scene: any, disposables: Array<
 }
 
 function createLoginTree(THREE: any, scale: number, z: number, disposables: Array<{ dispose?: () => void }>) {
+  // 树木用基础几何体搭剪影，避免登录页背景承担复杂模型加载。
   const group = new THREE.Group();
   const color = z > -5.5 ? 0x030806 : z > -7.5 ? 0x06110d : 0x0a1815;
   const material = new THREE.MeshBasicMaterial({ color, fog: z <= -7.5 });
@@ -257,6 +274,7 @@ function createLoginTree(THREE: any, scale: number, z: number, disposables: Arra
 }
 
 function createLoginGatheringSeats(THREE: any, scene: any, disposables: Array<{ dispose?: () => void }>) {
+  // 周围坐木给火塘增加尺度感，也是简单 Mesh 组合。
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.98 });
   disposables.push(woodMat);
   for (const seat of [
@@ -274,6 +292,7 @@ function createLoginGatheringSeats(THREE: any, scene: any, disposables: Array<{ 
 }
 
 function createLoginHearthCore(THREE: any, parent: any, disposables: Array<{ dispose?: () => void }>) {
+  // 火塘底座、灰床、石圈和木柴都是静态几何，统一登记到 disposables。
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(5.2, 72),
     new THREE.MeshStandardMaterial({ color: 0x152420, roughness: 0.95 })
@@ -322,6 +341,7 @@ function createLoginFlameMesh(
   opacity: number,
   disposables: Array<{ dispose?: () => void }>
 ) {
+  // 火焰几何体向上平移半个高度，让 mesh 原点位于火舌底部，方便缩放动画。
   const geometry = new THREE.ConeGeometry(radius, height, 10, 1, true);
   geometry.translate(0, height / 2, 0);
   geometry.computeVertexNormals();

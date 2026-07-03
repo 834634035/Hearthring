@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { DEFAULT_USER_ROLE, USER_ROLE_OPTIONS, canManageUsers, isUserRole, type UserRole } from "@tribal-epic/shared";
 import {
   apiCreateUser,
   apiDeleteUser,
@@ -7,7 +8,6 @@ import {
   apiUpdateUser,
   type AuthUser
 } from "../api";
-import { DEFAULT_USER_ROLE, USER_ROLE_OPTIONS, canManageUsers, isUserRole, type UserRole } from "@tribal-epic/shared";
 import { useAuth } from "../auth";
 
 const roles = USER_ROLE_OPTIONS;
@@ -25,16 +25,20 @@ export function UsersPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   const canManage = currentUser ? canManageUsers(currentUser.role) : false;
 
   const loadUsers = useCallback(async () => {
     if (!canManage) return;
     setError("");
+    setUsersLoading(true);
     try {
       setUsers(await apiListUsers());
     } catch {
       setError("加载用户失败");
+    } finally {
+      setUsersLoading(false);
     }
   }, [canManage]);
 
@@ -128,7 +132,7 @@ export function UsersPage() {
           <p className="eyebrow">Access Control</p>
           <h1>权限管理</h1>
         </div>
-        <button className="secondary-button" onClick={loadUsers}>
+        <button className="secondary-button" onClick={loadUsers} disabled={usersLoading}>
           刷新
         </button>
       </section>
@@ -179,7 +183,7 @@ export function UsersPage() {
       </form>
 
       <section className="panel">
-        <div className="table-wrap">
+        <div className="table-wrap" aria-busy={usersLoading}>
           <table className="data-table">
             <thead>
               <tr>
@@ -226,7 +230,8 @@ export function UsersPage() {
               ))}
             </tbody>
           </table>
-          {users.length === 0 && <div className="empty-state">暂无用户</div>}
+          {usersLoading && <div className="table-loading">加载中...</div>}
+          {!usersLoading && users.length === 0 && <div className="empty-state">暂无用户</div>}
         </div>
       </section>
     </div>

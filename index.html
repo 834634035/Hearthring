@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>防抖 & 节流 Demo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 640px;
+            margin: 40px auto;
+            padding: 0 16px;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1.25rem; margin-bottom: 8px; }
+        .page-desc { color: #666; font-size: 0.875rem; margin-bottom: 24px; }
+        h2.group-title {
+            font-size: 1.1rem;
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+        }
+        section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        section h2 { font-size: 1rem; margin: 0 0 8px; }
+        section p { color: #666; font-size: 0.875rem; margin: 0 0 12px; }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #fff;
+        }
+        button:active { background: #eee; }
+        .scroll-box {
+            height: 120px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .scroll-inner {
+            height: 360px;
+            padding: 12px;
+            background: linear-gradient(to bottom, #e8f4ff, #fff8e8, #ffe8e8);
+        }
+        .scroll-pos {
+            margin-top: 8px;
+            font-size: 0.875rem;
+            color: #333;
+        }
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 0.875rem;
+        }
+        .stats span { color: #666; }
+        .stats strong { color: #111; }
+        #log {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8125rem;
+            min-height: 160px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        #log:empty::before {
+            content: "日志会显示在这里…";
+            color: #999;
+        }
+        .log-item { margin: 4px 0; }
+        .log-trigger { color: #888; }
+        .log-debounce { color: #0a7; font-weight: 600; }
+        .log-throttle { color: #06c; font-weight: 600; }
+    </style>
+</head>
+
+<body>
+    <h1>防抖 & 节流 演示</h1>
+    <p class="page-desc">对比「触发次数」和「实际执行次数」，感受两种策略的差异。</p>
+
+    <h2 class="group-title">防抖 Debounce — 停下来才执行</h2>
+
+    <section>
+        <h2>1. 搜索输入框</h2>
+        <p>连续输入时不会立刻「发请求」，停手 500ms 后才执行。</p>
+        <input id="searchInput" type="text" placeholder="试试快速输入…">
+        <div class="stats">
+            <span>触发次数: <strong id="inputTriggerCount">0</strong></span>
+            <span>实际执行: <strong id="inputExecCount">0</strong></span>
+        </div>
+    </section>
+
+    <section>
+        <h2>2. 按钮连点</h2>
+        <p>快速连点，只有停手 800ms 后才会执行一次。</p>
+        <button id="clickBtn">连点我（防抖）</button>
+        <div class="stats">
+            <span>触发次数: <strong id="btnTriggerCount">0</strong></span>
+            <span>实际执行: <strong id="btnExecCount">0</strong></span>
+        </div>
+    </section>
+
+    <h2 class="group-title">节流 Throttle — 固定间隔执行</h2>
+
+    <section>
+        <h2>3. 滚动区域</h2>
+        <p>快速滚动时，每 500ms 最多更新一次位置（第一次立即响应）。</p>
+        <div id="scrollBox" class="scroll-box">
+            <div class="scroll-inner">
+                ↕ 在这个区域里快速滚动<br>
+                节流会「按节拍」更新，而不是等滚动停止<br><br>
+                · · · · · · · · · · · · · · · · · · · ·<br>
+                · · · · · · · · · · · · · · · · · · · ·<br>
+                · · · · · · · · · · · · · · · · · · · ·<br>
+                滚到底了
+            </div>
+        </div>
+        <div class="scroll-pos">当前 scrollTop: <strong id="scrollTopDisplay">0</strong></div>
+        <div class="stats">
+            <span>触发次数: <strong id="scrollTriggerCount">0</strong></span>
+            <span>实际执行: <strong id="scrollExecCount">0</strong></span>
+        </div>
+    </section>
+
+    <section>
+        <h2>4. 按钮连点（对比防抖）</h2>
+        <p>快速连点：第一次立刻执行，之后每 800ms 最多再执行一次（连点过程中也会定期触发）。</p>
+        <button id="throttleBtn">连点我（节流）</button>
+        <div class="stats">
+            <span>触发次数: <strong id="throttleBtnTriggerCount">0</strong></span>
+            <span>实际执行: <strong id="throttleBtnExecCount">0</strong></span>
+        </div>
+    </section>
+
+    <div id="log"></div>
+
+    <script>
+        function debounce(func, delay) {
+            let timer = null;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    func.apply(this, args);
+                }, delay);
+            };
+        }
+
+        function throttle(func, delay) {
+            let lastTime = 0;
+            return function (...args) {
+                const now = Date.now();
+                if (now - lastTime >= delay) {
+                    lastTime = now;
+                    func.apply(this, args);
+                }
+            };
+        }
+
+        const logEl = document.getElementById('log');
+
+        function appendLog(text, type = 'trigger') {
+            const item = document.createElement('div');
+            item.className = 'log-item log-' + type;
+            const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            item.textContent = `[${time}] ${text}`;
+            logEl.prepend(item);
+        }
+
+        // --- 防抖：输入框 ---
+        let inputTriggerCount = 0;
+        let inputExecCount = 0;
+
+        const debouncedSearch = debounce((value) => {
+            inputExecCount++;
+            document.getElementById('inputExecCount').textContent = inputExecCount;
+            appendLog(`[防抖] ✓ 搜索执行: "${value}"`, 'debounce');
+        }, 500);
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            inputTriggerCount++;
+            document.getElementById('inputTriggerCount').textContent = inputTriggerCount;
+            appendLog(`[防抖] 输入触发 (第 ${inputTriggerCount} 次)`, 'trigger');
+            debouncedSearch(e.target.value);
+        });
+
+        // --- 防抖：按钮 ---
+        let btnTriggerCount = 0;
+        let btnExecCount = 0;
+
+        const debouncedClick = debounce(() => {
+            btnExecCount++;
+            document.getElementById('btnExecCount').textContent = btnExecCount;
+            appendLog(`[防抖] ✓ 按钮执行 (第 ${btnExecCount} 次)`, 'debounce');
+        }, 800);
+
+        document.getElementById('clickBtn').addEventListener('click', () => {
+            btnTriggerCount++;
+            document.getElementById('btnTriggerCount').textContent = btnTriggerCount;
+            appendLog(`[防抖] 点击触发 (第 ${btnTriggerCount} 次)`, 'trigger');
+            debouncedClick();
+        });
+
+        // --- 节流：滚动 ---
+        let scrollTriggerCount = 0;
+        let scrollExecCount = 0;
+        const scrollBox = document.getElementById('scrollBox');
+
+        const throttledScroll = throttle((scrollTop) => {
+            scrollExecCount++;
+            document.getElementById('scrollExecCount').textContent = scrollExecCount;
+            document.getElementById('scrollTopDisplay').textContent = scrollTop;
+            appendLog(`[节流] ✓ 滚动更新 scrollTop=${scrollTop}`, 'throttle');
+        }, 500);
+
+        scrollBox.addEventListener('scroll', () => {
+            scrollTriggerCount++;
+            document.getElementById('scrollTriggerCount').textContent = scrollTriggerCount;
+            appendLog(`[节流] 滚动触发 (第 ${scrollTriggerCount} 次)`, 'trigger');
+            throttledScroll(scrollBox.scrollTop);
+        });
+
+        // --- 节流：按钮 ---
+        let throttleBtnTriggerCount = 0;
+        let throttleBtnExecCount = 0;
+
+        const throttledClick = throttle(() => {
+            throttleBtnExecCount++;
+            document.getElementById('throttleBtnExecCount').textContent = throttleBtnExecCount;
+            appendLog(`[节流] ✓ 按钮执行 (第 ${throttleBtnExecCount} 次)`, 'throttle');
+        }, 800);
+
+        document.getElementById('throttleBtn').addEventListener('click', () => {
+            throttleBtnTriggerCount++;
+            document.getElementById('throttleBtnTriggerCount').textContent = throttleBtnTriggerCount;
+            appendLog(`[节流] 点击触发 (第 ${throttleBtnTriggerCount} 次)`, 'trigger');
+            throttledClick();
+        });
+    </script>
+</body>
+
+</html>

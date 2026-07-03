@@ -1,5 +1,9 @@
 import { GUI } from "lil-gui";
 
+/**
+ * 火塘相机调试工具。
+ * 只在开发时使用，用 lil-gui 实时修改 Three 相机位置、注视点和 FOV。
+ */
 interface CameraLike {
   position: { x: number; y: number; z: number; set: (x: number, y: number, z: number) => void };
   fov: number;
@@ -31,6 +35,7 @@ export function attachHearthCameraGui(camera: CameraLike, lookTarget: LookTarget
   const params = { ...defaults };
 
   const apply = () => {
+    // GUI 改动后立即同步到 Three 相机，并重新计算投影矩阵。
     camera.position.set(params.posX, params.posY, params.posZ);
     lookTarget.set(params.targetX, params.targetY, params.targetZ);
     camera.fov = params.fov;
@@ -54,6 +59,7 @@ export function attachHearthCameraGui(camera: CameraLike, lookTarget: LookTarget
 
   const actions = {
     复制配置到控制台: () => {
+      // 把当前相机参数输出成可粘回代码的 snippet，方便确定最终构图。
       const snippet = [
         `camera.position.set(${params.posX.toFixed(2)}, ${params.posY.toFixed(2)}, ${params.posZ.toFixed(2)});`,
         `lookTarget.set(${params.targetX.toFixed(2)}, ${params.targetY.toFixed(2)}, ${params.targetZ.toFixed(2)});`,

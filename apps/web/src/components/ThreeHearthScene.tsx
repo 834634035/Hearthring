@@ -1,3 +1,7 @@
+/**
+ * Three.js 章节场景：负责村落探索、NPC 对话、角色控制和程序化环境。
+ * React 只承载 HUD/弹层状态，WebGL 场景本体在 mountGraybudVillage 里创建和销毁。
+ */
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { CHAPTER_SCENES, type ChapterSceneDefinition } from "../chapterScenes";
 import { loadCharacterWithAnimations, type CharacterAnimator } from "../characterAnimation";
@@ -16,6 +20,7 @@ import { SceneDialogueOverlay } from "./SceneDialogueOverlay";
 import type { ChapterQuestStep } from "../chapterQuestline";
 type ThreeModule = any;
 
+/** Three 的 geometry/material/texture 需要显式 dispose，避免切场景或 HMR 后占用 GPU 内存。 */
 type Disposable = {
   dispose?: () => void;
 };
@@ -23,6 +28,7 @@ type Disposable = {
 type KeyState = Record<string, boolean>;
 
 type SceneUiBridge = {
+  /** WebGL 热循环通过桥接层通知 React，避免把 Three 对象塞进组件状态。 */
   setNearNpc: (npc: { id: string; name: string; title: string } | null) => void;
   openDialogue: (dialogue: NpcDialoguePayload) => void;
   closeDialogue: () => void;
@@ -30,6 +36,7 @@ type SceneUiBridge = {
 };
 
 interface ThreeHearthSceneProps {
+  /** 章节场景配置驱动相机、光照、出生点和环境功能开关。 */
   sceneDefinition?: ChapterSceneDefinition;
   activeQuest?: ChapterQuestStep | null;
   onQuestComplete?: (questId: string) => void;
@@ -46,8 +53,10 @@ export function ThreeHearthScene({
   const [dialogue, setDialogue] = useState<NpcDialoguePayload | null>(null);
   const dialogueOpenRef = useRef(false);
 
+  // Three 的键盘/动画循环读取 ref，避免每帧触发 React 重渲染。
   dialogueOpenRef.current = dialogue !== null;
 
+  // 每次切换章节场景都重建一次 WebGL 世界，旧世界在 cleanup 中释放资源。
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -64,6 +73,7 @@ export function ThreeHearthScene({
 
     void import(/* @vite-ignore */ threeModuleUrl).then((THREE) => {
       if (disposed) return;
+      // 动态加载 Three，降低 web 首屏包体；加载完成后再挂载真实场景。
       cleanup = mountGraybudVillage(THREE, mount, uiBridge, fpsRef, sceneDefinition);
     });
 
@@ -117,23 +127,31 @@ function mountGraybudVillage(
   sceneDefinition: ChapterSceneDefinition
 ) {
   const disposables: Disposable[] = [];
+  // Scene 是整个 Three 世界根节点，背景色和雾效都绑定在这里。
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(sceneDefinition.skyColor);
   scene.fog = new THREE.FogExp2(sceneDefinition.fogColor, sceneDefinition.id === "sprout-seeking-ravine" ? 0.038 : 0.028);
 
+  // 透视相机用于第三人称跟随，初始位置来自章节配置。
   const camera = new THREE.PerspectiveCamera(62, mount.clientWidth / mount.clientHeight, 0.1, 180);
   camera.position.set(...sceneDefinition.camera.position);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // 色彩空间和 ACES tone mapping 让火光/夜景更接近真实曝光。
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
+  renderer.setPixelRatio(getScenePixelRatio());
   renderer.setSize(mount.clientWidth, mount.clientHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   mount.appendChild(renderer.domElement);
 
+  // 可交互世界统一挂到 world 下；天空、星场等远景可以直接挂 scene。
   const world = new THREE.Group();
   scene.add(world);
 
+  // 半球光给基础环境亮度，月光负责方向阴影，火光负责营地中心的暖色照明。
   const ambient = new THREE.HemisphereLight(0xb8cfc6, 0x2a1b12, sceneDefinition.ambientIntensity);
   scene.add(ambient);
 
@@ -145,8 +163,9 @@ function mountGraybudVillage(
 
   const fireLight = new THREE.PointLight(0xff7a2a, sceneDefinition.fireIntensity, 24, 1.4);
   fireLight.position.set(0, 1.25, 0);
-  fireLight.castShadow = true;
+  fireLight.castShadow = false;
   scene.add(fireLight);
+  exposeSceneDiagnostics(renderer, scene, world, sceneDefinition.id);
 
   const movement = { walkSpeed: 4.2, sprintSpeed: 8, mouseSensitivity: 0.004 };
   const thirdPerson = {
@@ -162,6 +181,7 @@ function mountGraybudVillage(
 
   let sceneDisposed = false;
   let playerCharacter: any | undefined;
+  // 外部角色模型按包围盒贴地后，仍用该偏移维持脚底高度。
   let playerFootOffsetY = 0;
   let playerAnimator: CharacterAnimator | undefined;
   const characterAnimators: CharacterAnimator[] = [];
@@ -187,6 +207,7 @@ function mountGraybudVillage(
   const sceneNpcs = getNpcsForScene(sceneDefinition.id);
 
   createGround(THREE, world, disposables, sceneDefinition);
+  // 场景功能由 ChapterSceneDefinition.features 决定，便于复用同一个 renderer 逻辑生成不同地点。
   createSceneFeatures(THREE, world, disposables, sceneDefinition);
   createForestRing(THREE, world, disposables);
   createDistantHills(THREE, scene, disposables);
@@ -450,6 +471,7 @@ function mountGraybudVillage(
   const onResize = () => {
     camera.aspect = mount.clientWidth / mount.clientHeight;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(getScenePixelRatio());
     renderer.setSize(mount.clientWidth, mount.clientHeight);
   };
 
@@ -479,6 +501,7 @@ function mountGraybudVillage(
       if (fpsHudAccum >= 0.25 && fpsRef.current) {
         fpsHudAccum = 0;
         fpsRef.current.textContent = `${Math.round(fpsSmooth)} FPS`;
+        writeSceneDiagnostics(renderer, scene, world, sceneDefinition.id);
       }
     }
 
@@ -546,10 +569,69 @@ function mountGraybudVillage(
     clearModelCache();
     for (const item of disposables) item.dispose?.();
     renderer.dispose();
+    clearSceneDiagnostics(renderer);
     if (renderer.domElement.parentElement === mount) {
       mount.removeChild(renderer.domElement);
     }
   };
+}
+
+function getScenePixelRatio() {
+  return Math.min(window.devicePixelRatio || 1, 1.5);
+}
+
+function exposeSceneDiagnostics(renderer: any, scene: any, world: any, sceneId: string) {
+  const global = window as typeof window & {
+    __THREE_HEARTH_SCENE__?: {
+      renderer: unknown;
+      get state(): Record<string, unknown>;
+    };
+  };
+
+  global.__THREE_HEARTH_SCENE__ = {
+    renderer: renderer.info,
+    get state() {
+      return getSceneDiagnostics(renderer, scene, world, sceneId);
+    }
+  };
+  writeSceneDiagnostics(renderer, scene, world, sceneId);
+}
+
+function getSceneDiagnostics(renderer: any, scene: any, world: any, sceneId: string) {
+  let meshes = 0;
+  let instancedMeshes = 0;
+  let points = 0;
+  let lights = 0;
+  world.traverse((object: any) => {
+    if (object.isInstancedMesh) instancedMeshes += 1;
+    if (object.isMesh) meshes += 1;
+    if (object.isPoints) points += 1;
+    if (object.isLight) lights += 1;
+  });
+  scene.traverse((object: any) => {
+    if (object.isLight) lights += 1;
+  });
+  return {
+    sceneId,
+    meshes,
+    instancedMeshes,
+    points,
+    lights,
+    pixelRatio: renderer.getPixelRatio(),
+    render: renderer.info.render,
+    memory: renderer.info.memory
+  };
+}
+
+function writeSceneDiagnostics(renderer: any, scene: any, world: any, sceneId: string) {
+  renderer.domElement.dataset.sceneDiagnostics = JSON.stringify(getSceneDiagnostics(renderer, scene, world, sceneId));
+}
+
+function clearSceneDiagnostics(renderer: any) {
+  const global = window as typeof window & { __THREE_HEARTH_SCENE__?: { renderer?: unknown } };
+  if (global.__THREE_HEARTH_SCENE__?.renderer === renderer.info) {
+    delete global.__THREE_HEARTH_SCENE__;
+  }
 }
 
 function universalClipForKey(key: string) {  const clips: Record<string, string> = {
@@ -563,6 +645,7 @@ function universalClipForKey(key: string) {  const clips: Record<string, string>
 }
 
 function collectAnimatedObjects(world: any) {
+  // 这里只放手写环境动效；角色动画交给 AnimationMixer。
   const flames: any[] = [];
   const embers: any[] = [];
   const trees: any[] = [];
@@ -584,6 +667,7 @@ function updateVillageAnimation(
   lighting: { fireIntensity: number },
   elapsed: number
 ) {
+  // 火光强度叠加两组正弦波，模拟不规则闪烁。
   const base = lighting.fireIntensity;
   fireLight.intensity = base + Math.sin(elapsed * 8) * (base * 0.1) + Math.sin(elapsed * 17) * (base * 0.06);
 
@@ -619,6 +703,7 @@ function createGround(
   disposables: Disposable[],
   sceneDefinition: ChapterSceneDefinition
 ) {
+  // 地面由大圆盘和路径方块组成，材质全部加入 disposables 统一释放。
   const groundMat = new THREE.MeshStandardMaterial({ color: sceneDefinition.groundColor, roughness: 0.96 });
   const pathMat = new THREE.MeshStandardMaterial({ color: sceneDefinition.pathColor, roughness: 1 });
   disposables.push(groundMat, pathMat);
@@ -645,6 +730,7 @@ function createGround(
   }
 }
 
+// 根据章节 features 组合场景模块，让不同地图共享同一套生成函数。
 function createSceneFeatures(
   THREE: ThreeModule,
   parent: any,
@@ -701,6 +787,7 @@ async function loadChapterSceneAssets(
 }
 
 function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  // 火塘是场景视觉中心：石环/木柴使用 InstancedMesh，火焰和余烬负责动态氛围。
   const ringMat = new THREE.MeshStandardMaterial({ color: 0x77705f, roughness: 0.9 });
   const ashMat = new THREE.MeshStandardMaterial({ color: 0x20201b, emissive: 0x2a1106, emissiveIntensity: 0.2, roughness: 1 });
   const seedMat = new THREE.MeshStandardMaterial({ color: 0xffdf8a, emissive: 0xff6c24, emissiveIntensity: 1.6, roughness: 0.35 });
@@ -716,24 +803,36 @@ function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[]
   hearth.add(ash);
   disposables.push(ash.geometry);
 
+  const instanceDummy = new THREE.Object3D();
+  const stoneGeometry = new THREE.BoxGeometry(0.42, 0.18, 0.32);
+  const stones = new THREE.InstancedMesh(stoneGeometry, ringMat, 28);
+  stones.castShadow = true;
+  stones.receiveShadow = true;
+  hearth.add(stones);
+  disposables.push(stoneGeometry);
   for (let i = 0; i < 28; i += 1) {
     const angle = (i / 28) * Math.PI * 2;
-    const stone = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.32), ringMat);
-    stone.position.set(Math.cos(angle) * 1.65, 0.11, Math.sin(angle) * 1.65);
-    stone.rotation.y = -angle + Math.sin(i) * 0.16;
-    stone.castShadow = true;
-    hearth.add(stone);
-    disposables.push(stone.geometry);
+    instanceDummy.position.set(Math.cos(angle) * 1.65, 0.11, Math.sin(angle) * 1.65);
+    instanceDummy.rotation.set(0, -angle + Math.sin(i) * 0.16, 0);
+    instanceDummy.scale.setScalar(1);
+    instanceDummy.updateMatrix();
+    stones.setMatrixAt(i, instanceDummy.matrix);
   }
+  stones.instanceMatrix.needsUpdate = true;
 
+  const logGeometry = new THREE.CylinderGeometry(0.08, 0.1, 1.15, 8);
+  const logs = new THREE.InstancedMesh(logGeometry, woodMat, 7);
+  logs.castShadow = true;
+  hearth.add(logs);
+  disposables.push(logGeometry);
   for (let i = 0; i < 7; i += 1) {
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.15, 8), woodMat);
-    log.position.set(Math.sin(i) * 0.22, 0.14, Math.cos(i * 1.8) * 0.22);
-    log.rotation.set(Math.PI / 2, i * 0.48, i * 0.7);
-    log.castShadow = true;
-    hearth.add(log);
-    disposables.push(log.geometry);
+    instanceDummy.position.set(Math.sin(i) * 0.22, 0.14, Math.cos(i * 1.8) * 0.22);
+    instanceDummy.rotation.set(Math.PI / 2, i * 0.48, i * 0.7);
+    instanceDummy.scale.setScalar(1);
+    instanceDummy.updateMatrix();
+    logs.setMatrixAt(i, instanceDummy.matrix);
   }
+  logs.instanceMatrix.needsUpdate = true;
 
   const flameColors = [
     [0xff531d, 0xff2d12],
@@ -790,6 +889,7 @@ function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[]
   disposables.push(emberGeo, emberMat);
 }
 
+// 房屋由少量基础几何体拼装，适合保持低面数并快速调整布局。
 function createHouses(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
   const houses = [
     { x: -7.4, z: -3.5, ry: 0.5, scale: 1.25 },
@@ -847,6 +947,7 @@ function createGraybudHouse(THREE: ThreeModule, scale: number, disposables: Disp
 }
 
 function createHerbRacks(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  // 草药架使用重复的小几何体营造采集/晾晒区域。
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x3c2819, roughness: 0.94 });
   const herbMat = new THREE.MeshStandardMaterial({ color: 0x7fa45a, roughness: 0.88 });
   const clothMat = new THREE.MeshStandardMaterial({ color: 0x92744d, roughness: 0.92 });
@@ -898,6 +999,7 @@ function createHerbRacks(THREE: ThreeModule, parent: any, disposables: Disposabl
 }
 
 function createCreek(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  // 溪流用半透明材质和盐痕几何体表现任务线索。
   const waterMat = new THREE.MeshStandardMaterial({
     color: 0x365b67,
     emissive: 0x102c34,
@@ -944,6 +1046,7 @@ function createRavine(THREE: ThreeModule, parent: any, disposables: Disposable[]
 }
 
 function createHuntingBlind(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  // 狩猎伏棚是程序化小道具组合，提供场景辨识度和遮挡层次。
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x2e2117, roughness: 0.96 });
   const hideMat = new THREE.MeshStandardMaterial({ color: 0x8d6848, roughness: 0.94 });
   disposables.push(woodMat, hideMat);
@@ -1099,6 +1202,7 @@ function createVillageDetails(THREE: ThreeModule, parent: any, disposables: Disp
   }
 }
 
+// 图腾柱用层叠标记强化部落符号，同时保持几何体很轻。
 function createTotemPole(
   THREE: ThreeModule,
   parent: any,
@@ -1139,36 +1243,56 @@ function createTotemPole(
 }
 
 function createForestRing(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+  // 远处森林使用 InstancedMesh 批量绘制，减少 draw call。
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x251a12, roughness: 0.98 });
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x162c1d, roughness: 0.92 });
   disposables.push(trunkMat, leafMat);
 
-  for (let i = 0; i < 64; i += 1) {
+  const treeCount = 64;
+  const dummy = new THREE.Object3D();
+  const trunkGeometry = new THREE.CylinderGeometry(0.12, 0.18, 2.3, 7);
+  const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMat, treeCount);
+  trunks.castShadow = true;
+  parent.add(trunks);
+  disposables.push(trunkGeometry);
+
+  const crownGeometries = [0, 1, 2].map((layer) => new THREE.ConeGeometry(0.9 - layer * 0.16, 1.5, 7));
+  const crowns = crownGeometries.map((geometry) => {
+    const mesh = new THREE.InstancedMesh(geometry, leafMat, treeCount);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    disposables.push(geometry);
+    return mesh;
+  });
+
+  for (let i = 0; i < treeCount; i += 1) {
     const angle = (i / 64) * Math.PI * 2;
     const radius = 17 + Math.sin(i * 2.1) * 2.2 + Math.random() * 2;
     const scale = 0.82 + Math.random() * 0.8;
-    const tree = new THREE.Group();
-    tree.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-    tree.rotation.y = -angle;
-    tree.userData.kind = "tree";
-    parent.add(tree);
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
 
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.18 * scale, 2.3 * scale, 7), trunkMat);
-    trunk.position.y = 1.15 * scale;
-    trunk.castShadow = true;
-    tree.add(trunk);
-    disposables.push(trunk.geometry);
-
+    dummy.position.set(x, 1.15 * scale, z);
+    dummy.rotation.set(0, -angle, 0);
+    dummy.scale.setScalar(scale);
+    dummy.updateMatrix();
+    trunks.setMatrixAt(i, dummy.matrix);
     for (let layer = 0; layer < 3; layer += 1) {
-      const crown = new THREE.Mesh(new THREE.ConeGeometry((0.9 - layer * 0.16) * scale, 1.5 * scale, 7), leafMat);
-      crown.position.y = (2 + layer * 0.58) * scale;
-      crown.castShadow = true;
-      tree.add(crown);
-      disposables.push(crown.geometry);
+      dummy.position.set(x, (2 + layer * 0.58) * scale, z);
+      dummy.rotation.set(0, -angle, 0);
+      dummy.scale.setScalar(scale);
+      dummy.updateMatrix();
+      crowns[layer]!.setMatrixAt(i, dummy.matrix);
     }
+  }
+
+  trunks.instanceMatrix.needsUpdate = true;
+  for (const crown of crowns) {
+    crown.instanceMatrix.needsUpdate = true;
   }
 }
 
+// 远山直接挂到 scene，配合雾效形成背景层次。
 function createDistantHills(THREE: ThreeModule, scene: any, disposables: Disposable[]) {
   const mat = new THREE.MeshBasicMaterial({ color: 0x16251f, fog: true });
   disposables.push(mat);
@@ -1182,6 +1306,7 @@ function createDistantHills(THREE: ThreeModule, scene: any, disposables: Disposa
   }
 }
 
+// 星场使用 Points + BufferGeometry，一次提交大量点位，比逐个 Mesh 更轻。
 function createStarfield(THREE: ThreeModule, scene: any, disposables: Disposable[]) {
   const count = 260;
   const positions = new Float32Array(count * 3);

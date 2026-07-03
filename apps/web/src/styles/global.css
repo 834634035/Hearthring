@@ -2154,6 +2154,8 @@ h2 {
 }
 
 .table-wrap {
+  position: relative;
+  min-height: 132px;
   overflow-x: auto;
   scrollbar-gutter: auto;
   border: 1px solid var(--border-soft);
@@ -2197,6 +2199,20 @@ h2 {
 
 .data-table tbody tr:hover {
   background: #f7fbf4;
+}
+
+.table-loading {
+  position: absolute;
+  inset: 43px 0 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-height: 88px;
+  color: var(--moss);
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(255, 253, 248, 0.82);
+  backdrop-filter: blur(2px);
 }
 
 .empty-state,

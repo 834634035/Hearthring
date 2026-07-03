@@ -1,3 +1,7 @@
+/**
+ * Three.js 角色动画适配层。
+ * 这里把 GLTF 里的 AnimationClip 包装成游戏可用的行走、奔跑、攻击、跳跃状态。
+ */
 export type LoadedGltf = {
   scene: unknown;
   animations: Array<{ name: string; duration: number }>;
@@ -44,6 +48,7 @@ function isLikelyOneShot(name: string) {
 }
 
 export function createCharacterAnimator(THREE: any, root: unknown, clips: LoadedGltf["animations"]): CharacterAnimator {
+  // AnimationMixer 是 Three 官方动画入口，负责按 delta 推进骨骼/节点动画。
   const mixer = new THREE.AnimationMixer(root);
   const actions = new Map<string, any>();
   const durations = new Map<string, number>();
@@ -55,12 +60,14 @@ export function createCharacterAnimator(THREE: any, root: unknown, clips: Loaded
   let lockedAction: any | undefined;
 
   for (const clip of clips) {
+    // 每个 clipAction 都绑定到当前角色 root，避免多个角色共享同一个动作状态。
     const action = mixer.clipAction(clip, root);
     actions.set(clip.name, action);
     durations.set(clip.name, clip.duration);
   }
 
   mixer.addEventListener("finished", (event: { action: any }) => {
+    // 一次性动作结束后解锁移动，让攻击/跳跃不会永久卡住角色控制。
     if (event.action === lockedAction) {
       actionLocked = false;
       lockKind = null;
@@ -79,12 +86,14 @@ export function createCharacterAnimator(THREE: any, root: unknown, clips: Loaded
     }
 
     nextAction.reset();
+    // 循环动作使用 LoopRepeat；攻击/跳跃等一次性动作播放完后停在最后一帧。
     nextAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
     nextAction.clampWhenFinished = !loop;
     nextAction.setEffectiveWeight(1);
     nextAction.timeScale = 1;
 
     if (currentAction && currentAction !== nextAction) {
+      // 通过 fadeIn/fadeOut 混合动作，减少待机、行走、奔跑切换时的抽帧感。
       currentAction.fadeOut(fade);
       nextAction.reset().fadeIn(fade).play();
     } else if (fade > 0) {
@@ -229,6 +238,7 @@ export async function loadCharacterWithAnimations(
   animationPackIds: string | string[]
 ) {
   const packIds = Array.isArray(animationPackIds) ? animationPackIds : [animationPackIds];
+  // 角色模型和动画包并行加载，动画包可以只提供 clips，不必重复角色网格。
   const [sourceCharacterGltf, ...animationGltfs] = await Promise.all([
     loadModelById(THREE, characterId),
     ...packIds.map((id) => loadModelById(THREE, id))
@@ -249,6 +259,7 @@ export async function loadCharacterWithAnimations(
 
 async function cloneCharacterScene(scene: unknown) {
   try {
+    // SkeletonUtils.clone 会正确复制蒙皮骨骼，多个 NPC/玩家实例才能独立播放动画。
     const { clone } = await import(/* @vite-ignore */ SKELETON_UTILS_URL);
     return clone(scene);
   } catch (error) {

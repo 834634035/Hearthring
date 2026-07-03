@@ -135,6 +135,7 @@ export function AdminPage({ entity }: AdminPageProps) {
         <DataTable
           columns={columns}
           rows={rows}
+          loading={loading}
           onEdit={canWrite ? (row) => {
             setIsCreating(false);
             setEditing(row);

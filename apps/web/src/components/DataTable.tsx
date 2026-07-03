@@ -1,18 +1,20 @@
-import type { EntityRow } from "../types";
 import type { TableColumn } from "../entityConfig";
+import type { EntityRow } from "../types";
 
 interface DataTableProps {
   columns: TableColumn[];
   rows: EntityRow[];
+  loading?: boolean;
+  loadingLabel?: string;
   onEdit?: (row: EntityRow) => void;
   onDelete?: (row: EntityRow) => void;
 }
 
-export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
+export function DataTable({ columns, rows, loading = false, loadingLabel = "加载中...", onEdit, onDelete }: DataTableProps) {
   const hasActions = Boolean(onEdit || onDelete);
 
   return (
-    <div className="table-wrap thin-scrollbar">
+    <div className="table-wrap thin-scrollbar" aria-busy={loading}>
       <table className="data-table">
         <thead>
           <tr>
@@ -48,7 +50,8 @@ export function DataTable({ columns, rows, onEdit, onDelete }: DataTableProps) {
           ))}
         </tbody>
       </table>
-      {rows.length === 0 && <div className="empty-state">暂无数据</div>}
+      {loading && <div className="table-loading">{loadingLabel}</div>}
+      {!loading && rows.length === 0 && <div className="empty-state">暂无数据</div>}
     </div>
   );
 }

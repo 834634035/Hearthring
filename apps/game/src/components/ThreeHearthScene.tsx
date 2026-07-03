@@ -1,4 +1,17 @@
+/**
+ * Three.js 章节场景：第三人称村落探索、NPC 对话与任务互动。
+ *
+ * 架构：
+ * - React 管理 HUD 状态（附近 NPC/互动点、对话浮层）。
+ * - `mountGraybudVillage` 负责 WebGL 生命周期、输入与渲染循环。
+ * - `SceneUiBridge` 将命令式循环与 React 连接，避免每帧触发重渲染。
+ * - 程序化几何体与可选 GLB 资源由 `ChapterSceneDefinition` 驱动。
+ */
+import { animate, type JSAnimation } from "animejs";
+// 注册 Anime.js 对 Three Object3D 属性（x/y/z、rotateY、scale 等）的映射。
+import "animejs/adapters/three";
 import { useEffect, useRef, useState, type RefObject } from "react";
+import * as THREE from "three";
 import { getInteractionsForScene, type ChapterInteractionDefinition } from "../chapterInteractions";
 import { CHAPTER_SCENES, type ChapterSceneDefinition } from "../chapterScenes";
 import { loadCharacterWithAnimations, type CharacterAnimator } from "../characterAnimation";
@@ -15,19 +28,22 @@ import {
 } from "../villageNpcs";
 import { SceneDialogueOverlay } from "./SceneDialogueOverlay";
 import type { ChapterQuestStep } from "../chapterQuestline";
-type ThreeModule = any;
+type ThreeModule = typeof THREE;
 
+/** 卸载或 HMR 时需 dispose 的几何体/材质条目。 */
 type Disposable = {
   dispose?: () => void;
 };
 
 type KeyState = Record<string, boolean>;
 
+/** 任务互动定义与其 3D 标记组的运行时配对。 */
 type SceneInteractionInstance = {
   definition: ChapterInteractionDefinition;
   root: any;
 };
 
+/** 渲染循环回调 React UI 的桥接层，避免在热路径中直接传递 setState。 */
 type SceneUiBridge = {
   setNearNpc: (npc: { id: string; name: string; title: string } | null) => void;
   setNearInteraction: (interaction: ChapterInteractionDefinition | null) => void;
@@ -38,13 +54,16 @@ type SceneUiBridge = {
 };
 
 interface ThreeHearthSceneProps {
+  /** 章节配置中的场景布局、光照、出生点与功能开关。 */
   sceneDefinition?: ChapterSceneDefinition;
   activeQuest?: ChapterQuestStep | null;
+  /** 已完成的互动点挂载时隐藏，且不参与邻近检测。 */
   completedInteractionIds?: string[];
   onInteractionComplete?: (interaction: ChapterInteractionDefinition) => void;
   onQuestComplete?: (questId: string) => void;
 }
 
+/** React 外壳：挂载 WebGL 画布，并在其上叠加对话/任务 HUD。 */
 export function ThreeHearthScene({
   sceneDefinition = CHAPTER_SCENES[0]!,
   activeQuest = null,
@@ -60,16 +79,16 @@ export function ThreeHearthScene({
   const dialogueOpenRef = useRef(false);
   const onInteractionCompleteRef = useRef(onInteractionComplete);
 
+  // 保持 ref 同步，使 Three.js 循环始终读取最新 props 而无需重新挂载。
   dialogueOpenRef.current = dialogue !== null;
   onInteractionCompleteRef.current = onInteractionComplete;
 
+  // 每个场景定义挂载一次 WebGL；卸载时释放 GPU 资源并清空模型缓存。
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
-    let disposed = false;
     let cleanup: (() => void) | undefined;
-    const threeModuleUrl = "https://esm.sh/three@0.176.0";
     const uiBridge: SceneUiBridge = {
       setNearNpc,
       setNearInteraction,
@@ -82,16 +101,13 @@ export function ThreeHearthScene({
       }
     };
 
-    void import(/* @vite-ignore */ threeModuleUrl).then((THREE) => {
-      if (disposed) return;
-      cleanup = mountGraybudVillage(THREE, mount, uiBridge, fpsRef, sceneDefinition, completedInteractionIds);
-    });
+    cleanup = mountGraybudVillage(THREE, mount, uiBridge, fpsRef, sceneDefinition, completedInteractionIds);
 
     const teardown = () => {
-      disposed = true;
       cleanup?.();
     };
 
+    // Vite HMR：模块热更新前先销毁旧场景。
     import.meta.hot?.dispose(teardown);
 
     return teardown;
@@ -135,6 +151,10 @@ export function ThreeHearthScene({
   );
 }
 
+/**
+ * 初始化章节场景：渲染器、光照、程序化世界、角色、输入与 RAF 循环。
+ * 返回必须在卸载/HMR 时调用的清理函数。
+ */
 function mountGraybudVillage(
   THREE: ThreeModule,
   mount: HTMLDivElement,
@@ -146,18 +166,23 @@ function mountGraybudVillage(
   const disposables: Disposable[] = [];
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(sceneDefinition.skyColor);
+  // 峡谷场景使用更浓雾效，营造狭窄封闭感。
   scene.fog = new THREE.FogExp2(sceneDefinition.fogColor, sceneDefinition.id === "sprout-seeking-ravine" ? 0.02 : 0.016);
 
   const camera = new THREE.PerspectiveCamera(62, mount.clientWidth / mount.clientHeight, 0.1, 180);
   camera.position.set(...sceneDefinition.camera.position);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
+  renderer.setPixelRatio(getScenePixelRatio());
   renderer.setSize(mount.clientWidth, mount.clientHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   mount.appendChild(renderer.domElement);
 
+  // 可玩几何体挂在 `world` 下；天空/远山/星空直接挂在 `scene` 上。
   const world = new THREE.Group();
   scene.add(world);
 
@@ -172,8 +197,9 @@ function mountGraybudVillage(
 
   const fireLight = new THREE.PointLight(0xff7a2a, sceneDefinition.fireIntensity, 24, 1.4);
   fireLight.position.set(0, 1.25, 0);
-  fireLight.castShadow = true;
+  fireLight.castShadow = false;
   scene.add(fireLight);
+  exposeSceneDiagnostics(renderer, scene, world, sceneDefinition.id);
 
   const movement = { walkSpeed: 5.0, sprintSpeed: 9.5, mouseSensitivity: 0.004 };
   const thirdPerson = {
@@ -189,8 +215,11 @@ function mountGraybudVillage(
 
   let sceneDisposed = false;
   let playerCharacter: any | undefined;
+  // 高度归一化后，用垂直偏移使模型脚底落在 y=0。
   let playerFootOffsetY = 0;
   let playerAnimator: CharacterAnimator | undefined;
+  // Anime.js 负责纯展示循环；导入角色的动画片段仍由 AnimationMixer 驱动。
+  const animeAnimations: JSAnimation[] = [];
   const characterAnimators: CharacterAnimator[] = [];
   const characterEquipment: CharacterEquipment[] = [];
   let universalAnimator: CharacterAnimator | undefined;
@@ -219,14 +248,16 @@ function mountGraybudVillage(
     (interaction) => !completedInteractionIds.includes(interaction.id)
   );
 
+  // --- 程序化世界 + 章节资源（异步 GLB 加载受 sceneDisposed 守卫）---
   createGround(THREE, world, disposables, sceneDefinition);
-  createSceneFeatures(THREE, world, disposables, sceneDefinition);
-  interactionMarkers.push(...createInteractionMarkers(THREE, world, disposables, sceneInteractions));
+  createSceneFeatures(THREE, world, disposables, sceneDefinition, animeAnimations);
+  interactionMarkers.push(...createInteractionMarkers(THREE, world, disposables, sceneInteractions, animeAnimations));
   createForestRing(THREE, world, disposables);
   createDistantHills(THREE, scene, disposables);
   createStarfield(THREE, scene, disposables);
   void loadChapterSceneAssets(THREE, world, sceneDefinition, disposables, () => sceneDisposed);
 
+  // --- 玩家角色（KayKit 野蛮人 + 默认单手剑）---
   void loadCharacterWithAnimations(
     THREE,
     loadModelById,
@@ -297,6 +328,7 @@ function mountGraybudVillage(
       console.error("Failed to load test character:", error);
     });
 
+  // --- 按章节 NPC 定义生成的场景 NPC ---
   void Promise.all(
     sceneNpcs.map((definition) => spawnVillageNpc(THREE, world, loadModelById, definition, disposables, sceneDefinition.id))
   )
@@ -315,6 +347,7 @@ function mountGraybudVillage(
       console.error("Failed to load village npc:", error);
     });
 
+  // 可选 UAL 原型角色 — 仅灰芽炉火场景，用于展示另一套动画库。
   if (sceneDefinition.id === "gray-sprout-hearth") void (async () => {
     try {
       const ualEntry = await getModelEntry("characters.prototype.ual.standard");
@@ -377,10 +410,12 @@ function mountGraybudVillage(
     }
   })();
 
+  // --- 输入：键盘移动、指针环视 vs 点击攻击 ---
   const keys: KeyState = {};
   const pointer = {
     dragging: false,
     pressed: false,
+    // 移动距离低于此像素阈值视为点击（攻击），而非拖拽镜头。
     dragThreshold: 5,
     x: 0,
     y: 0,
@@ -391,6 +426,7 @@ function mountGraybudVillage(
     pitch: 0.13
   };
 
+  // lil-gui 调参面板 — 仅开发环境懒加载。
   if (import.meta.env.DEV) {
     void import("../villageSceneGui.ts").then(({ attachVillageSceneGui }) => {
       if (sceneDisposed) return;
@@ -404,7 +440,7 @@ function mountGraybudVillage(
         fireLight,
         moon,
         ambient,
-        scene
+        scene: scene as any
       });      for (let i = 0; i < characterAnimators.length; i += 1) {
         const equipment = characterEquipment[i];
         if (equipment) {
@@ -433,11 +469,15 @@ function mountGraybudVillage(
       ui.openDialogue(npcDialoguePayload(nearbyNpc));
     }
     if (!event.repeat && event.key.toLowerCase() === "f" && nearbyInteraction) {
-      nearbyInteraction.root.visible = false;
+      const completed = nearbyInteraction;
       ui.completeInteraction(nearbyInteraction.definition);
       nearbyInteraction = undefined;
       nearbyInteractionId = null;
       ui.setNearInteraction(null);
+      // 先播放完成动效，再隐藏标记。
+      void playInteractionCompleteAnimation(completed.root, animeAnimations).then(() => {
+        if (!sceneDisposed) completed.root.visible = false;
+      });
     }
     if (universalAnimator) {
       const clipName = universalClipForKey(event.key);
@@ -491,6 +531,7 @@ function mountGraybudVillage(
   const onResize = () => {
     camera.aspect = mount.clientWidth / mount.clientHeight;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(getScenePixelRatio());
     renderer.setSize(mount.clientWidth, mount.clientHeight);
   };
 
@@ -508,9 +549,11 @@ function mountGraybudVillage(
   let fpsSmooth = 60;
   let fpsHudAccum = 0;
 
+  // --- 主渲染循环 ---
   const animate = () => {
     if (sceneDisposed) return;
 
+    // 限制 delta，避免标签页后台切换后物理/镜头跳变。
     const delta = Math.min(clock.getDelta(), 0.045);
     const elapsed = clock.elapsedTime;
 
@@ -520,6 +563,7 @@ function mountGraybudVillage(
       if (fpsHudAccum >= 0.25 && fpsRef.current) {
         fpsHudAccum = 0;
         fpsRef.current.textContent = `${Math.round(fpsSmooth)} FPS`;
+        writeSceneDiagnostics(renderer, scene, world, sceneDefinition.id);
       }
     }
 
@@ -538,6 +582,7 @@ function mountGraybudVillage(
 
       nearbyNpc = findNearbyNpc(playerCharacter, villageNpcs);
       const nextNearId = nearbyNpc?.definition.id ?? null;
+      // 仅当邻近目标变化时才推送到 React，避免多余 setState。
       if (nextNearId !== nearbyNpcId) {
         nearbyNpcId = nextNearId;
         ui.setNearNpc(
@@ -558,10 +603,12 @@ function mountGraybudVillage(
         ui.setNearInteraction(nearbyInteraction?.definition ?? null);
       }
     } else if (!playerCharacter || !playerAnimator) {
+      // 玩家模型加载完成前，使用章节默认镜头。
       camera.position.set(...sceneDefinition.camera.position);
       camera.lookAt(...sceneDefinition.camera.lookAt);
     }
 
+    // 环境动画：火光闪烁、火星、树木摇曳、旗帜（不由 Anime.js 驱动）。
     updateVillageAnimation(animated, fireLight, lighting, elapsed);
     for (const animator of characterAnimators) {
       animator.update(delta);
@@ -575,6 +622,10 @@ function mountGraybudVillage(
   return () => {
     sceneDisposed = true;
     sceneGui?.destroy();
+    // 卸载/HMR 时回滚 Anime.js 变换，避免场景重挂载时残留状态。
+    for (const animation of animeAnimations) {
+      animation.revert();
+    }
     for (const animator of characterAnimators) {
       animator.dispose();
     }
@@ -594,13 +645,76 @@ function mountGraybudVillage(
     clearModelCache();
     for (const item of disposables) item.dispose?.();
     renderer.dispose();
+    clearSceneDiagnostics(renderer);
     if (renderer.domElement.parentElement === mount) {
       mount.removeChild(renderer.domElement);
     }
   };
 }
 
-function universalClipForKey(key: string) {  const clips: Record<string, string> = {
+/** 限制设备像素比，减轻高密度屏幕上的 fill-rate 压力。 */
+function getScenePixelRatio() {
+  return Math.min(window.devicePixelRatio || 1, 1.5);
+}
+
+/** 在 `window.__THREE_HEARTH_SCENE__` 暴露渲染统计，供调试与自动化 QA 使用。 */
+function exposeSceneDiagnostics(renderer: any, scene: any, world: any, sceneId: string) {
+  const global = window as typeof window & {
+    __THREE_HEARTH_SCENE__?: {
+      renderer: unknown;
+      get state(): Record<string, unknown>;
+    };
+  };
+
+  global.__THREE_HEARTH_SCENE__ = {
+    renderer: renderer.info,
+    get state() {
+      return getSceneDiagnostics(renderer, scene, world, sceneId);
+    }
+  };
+  writeSceneDiagnostics(renderer, scene, world, sceneId);
+}
+
+function getSceneDiagnostics(renderer: any, scene: any, world: any, sceneId: string) {
+  let meshes = 0;
+  let instancedMeshes = 0;
+  let points = 0;
+  let lights = 0;
+  world.traverse((object: any) => {
+    if (object.isInstancedMesh) instancedMeshes += 1;
+    if (object.isMesh) meshes += 1;
+    if (object.isPoints) points += 1;
+    if (object.isLight) lights += 1;
+  });
+  scene.traverse((object: any) => {
+    if (object.isLight) lights += 1;
+  });
+  return {
+    sceneId,
+    meshes,
+    instancedMeshes,
+    points,
+    lights,
+    pixelRatio: renderer.getPixelRatio(),
+    render: renderer.info.render,
+    memory: renderer.info.memory
+  };
+}
+
+function writeSceneDiagnostics(renderer: any, scene: any, world: any, sceneId: string) {
+  renderer.domElement.dataset.sceneDiagnostics = JSON.stringify(getSceneDiagnostics(renderer, scene, world, sceneId));
+}
+
+function clearSceneDiagnostics(renderer: any) {
+  const global = window as typeof window & { __THREE_HEARTH_SCENE__?: { renderer?: unknown } };
+  if (global.__THREE_HEARTH_SCENE__?.renderer === renderer.info) {
+    delete global.__THREE_HEARTH_SCENE__;
+  }
+}
+
+/** UAL 原型角色的数字键快捷键（仅炉火场景）。 */
+function universalClipForKey(key: string) {
+  const clips: Record<string, string> = {
     "1": "Idle_Torch_Loop",
     "2": "Walk_Loop",
     "3": "Jog_Fwd_Loop",
@@ -610,15 +724,17 @@ function universalClipForKey(key: string) {  const clips: Record<string, string>
   return clips[key];
 }
 
+/** 发光任务互动标记；待机动画由 Anime.js 驱动，完成时播放一次性反馈。 */
 function createInteractionMarkers(
   THREE: ThreeModule,
   parent: any,
   disposables: Disposable[],
-  interactions: ChapterInteractionDefinition[]
+  interactions: ChapterInteractionDefinition[],
+  animeAnimations: JSAnimation[]
 ) {
   const markers: SceneInteractionInstance[] = [];
 
-  for (const interaction of interactions) {
+  for (const [index, interaction] of interactions.entries()) {
     const group = new THREE.Group();
     group.name = `Interaction:${interaction.id}`;
     group.position.set(...interaction.position);
@@ -660,6 +776,29 @@ function createInteractionMarkers(
     group.add(signal);
     disposables.push(signal.geometry);
 
+    // 标记待机动画走时间轴，不与渲染循环争抢每帧更新。
+    animeAnimations.push(
+      animate(ring, {
+        scale: [0.92, 1.18],
+        rotateZ: [0, 360],
+        duration: 1800,
+        delay: index * 120,
+        ease: "inOutSine",
+        loop: true,
+        alternate: true
+      }),
+      animate(signal, {
+        y: [0.42, 0.64],
+        scale: [0.85, 1.16],
+        rotateY: [0, 360],
+        duration: 1400,
+        delay: index * 90,
+        ease: "inOutSine",
+        loop: true,
+        alternate: true
+      })
+    );
+
     parent.add(group);
     markers.push({ definition: interaction, root: group });
   }
@@ -667,6 +806,19 @@ function createInteractionMarkers(
   return markers;
 }
 
+// 世界互动完成后的短促一次性反馈动画。
+async function playInteractionCompleteAnimation(root: any, animeAnimations: JSAnimation[]) {
+  const animation = animate(root, {
+    y: root.position.y + 0.34,
+    scale: [root.scale.x || 1, 1.55, 0.02],
+    duration: 520,
+    ease: "outCubic"
+  });
+  animeAnimations.push(animation);
+  await animation.then();
+}
+
+/** 在 XZ 平面约 1.65m 内选取最近的可见互动点。 */
 function findNearbyInteraction(
   playerRoot: { position: { x: number; z: number } },
   interactions: SceneInteractionInstance[]
@@ -688,22 +840,22 @@ function findNearbyInteraction(
   return nearest;
 }
 
+/** 收集 `userData.kind` 标记的对象，供每帧环境动画更新。 */
 function collectAnimatedObjects(world: any) {
+  // 这里只放手写环境动效；角色动画交给 AnimationMixer，展示循环交给 Anime.js。
   const flames: any[] = [];
   const embers: any[] = [];
   const trees: any[] = [];
   const banners: any[] = [];
-  const interactionMarkers: any[] = [];
 
   world.traverse((object: any) => {
     if (object.userData.kind === "flame") flames.push(object);
     if (object.userData.kind === "ember") embers.push(object);
     if (object.userData.kind === "tree") trees.push(object);
     if (object.userData.kind === "banner") banners.push(object);
-    if (object.userData.kind === "interactionMarker") interactionMarkers.push(object);
   });
 
-  return { flames, embers, trees, banners, interactionMarkers };
+  return { flames, embers, trees, banners };
 }
 
 function updateVillageAnimation(
@@ -712,6 +864,7 @@ function updateVillageAnimation(
   lighting: { fireIntensity: number },
   elapsed: number
 ) {
+  // 火光强度叠加两组正弦波，模拟不规则闪烁。
   const base = lighting.fireIntensity;
   fireLight.intensity = base + Math.sin(elapsed * 8) * (base * 0.1) + Math.sin(elapsed * 17) * (base * 0.06);
 
@@ -740,11 +893,6 @@ function updateVillageAnimation(
     banner.rotation.z = Math.sin(elapsed * 1.4 + index) * 0.08;
   });
 
-  animated.interactionMarkers.forEach((marker, index) => {
-    const pulse = 1 + Math.sin(elapsed * 3.4 + index) * 0.08;
-    marker.scale.setScalar(pulse);
-    marker.rotation.y += 0.015;
-  });
 }
 
 function createGround(
@@ -780,13 +928,16 @@ function createGround(
   }
 }
 
+/** 按 `sceneDefinition.features` 开关生成程序化地标（炉火、溪流、峡谷等）。 */
+// 根据章节 features 组合场景模块，让不同地图共享同一套生成函数。
 function createSceneFeatures(
   THREE: ThreeModule,
   parent: any,
   disposables: Disposable[],
-  sceneDefinition: ChapterSceneDefinition
+  sceneDefinition: ChapterSceneDefinition,
+  animeAnimations: JSAnimation[]
 ) {
-  if (sceneDefinition.features.includes("hearth")) createHearth(THREE, parent, disposables);
+  if (sceneDefinition.features.includes("hearth")) createHearth(THREE, parent, disposables, animeAnimations);
   if (sceneDefinition.features.includes("houses")) createHouses(THREE, parent, disposables);
   if (sceneDefinition.features.includes("ancestorPoles")) {
     createTotemPole(THREE, parent, disposables, -2.7, -2.1);
@@ -800,6 +951,7 @@ function createSceneFeatures(
   if (sceneDefinition.features.includes("oxTracks")) createOxTracks(THREE, parent, disposables);
 }
 
+/** 放置章节配置中的 GLB 模型；加载失败仅记录日志并跳过。 */
 async function loadChapterSceneAssets(
   THREE: ThreeModule,
   parent: any,
@@ -835,7 +987,9 @@ async function loadChapterSceneAssets(
   }
 }
 
-function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
+/** 中央篝火：实例化石块/木柴、分层火焰、火星粒子、动画火种。 */
+// 火塘是场景视觉中心：石环/木柴使用 InstancedMesh，火焰和余烬负责动态氛围。
+function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[], animeAnimations: JSAnimation[]) {
   const ringMat = new THREE.MeshStandardMaterial({ color: 0x77705f, roughness: 0.9 });
   const ashMat = new THREE.MeshStandardMaterial({ color: 0x20201b, emissive: 0x2a1106, emissiveIntensity: 0.2, roughness: 1 });
   const seedMat = new THREE.MeshStandardMaterial({ color: 0xffdf8a, emissive: 0xff6c24, emissiveIntensity: 1.6, roughness: 0.35 });
@@ -851,24 +1005,36 @@ function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[]
   hearth.add(ash);
   disposables.push(ash.geometry);
 
+  const instanceDummy = new THREE.Object3D();
+  const stoneGeometry = new THREE.BoxGeometry(0.42, 0.18, 0.32);
+  const stones = new THREE.InstancedMesh(stoneGeometry, ringMat, 28);
+  stones.castShadow = true;
+  stones.receiveShadow = true;
+  hearth.add(stones);
+  disposables.push(stoneGeometry);
   for (let i = 0; i < 28; i += 1) {
     const angle = (i / 28) * Math.PI * 2;
-    const stone = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.32), ringMat);
-    stone.position.set(Math.cos(angle) * 1.65, 0.11, Math.sin(angle) * 1.65);
-    stone.rotation.y = -angle + Math.sin(i) * 0.16;
-    stone.castShadow = true;
-    hearth.add(stone);
-    disposables.push(stone.geometry);
+    instanceDummy.position.set(Math.cos(angle) * 1.65, 0.11, Math.sin(angle) * 1.65);
+    instanceDummy.rotation.set(0, -angle + Math.sin(i) * 0.16, 0);
+    instanceDummy.scale.setScalar(1);
+    instanceDummy.updateMatrix();
+    stones.setMatrixAt(i, instanceDummy.matrix);
   }
+  stones.instanceMatrix.needsUpdate = true;
 
+  const logGeometry = new THREE.CylinderGeometry(0.08, 0.1, 1.15, 8);
+  const logs = new THREE.InstancedMesh(logGeometry, woodMat, 7);
+  logs.castShadow = true;
+  hearth.add(logs);
+  disposables.push(logGeometry);
   for (let i = 0; i < 7; i += 1) {
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.15, 8), woodMat);
-    log.position.set(Math.sin(i) * 0.22, 0.14, Math.cos(i * 1.8) * 0.22);
-    log.rotation.set(Math.PI / 2, i * 0.48, i * 0.7);
-    log.castShadow = true;
-    hearth.add(log);
-    disposables.push(log.geometry);
+    instanceDummy.position.set(Math.sin(i) * 0.22, 0.14, Math.cos(i * 1.8) * 0.22);
+    instanceDummy.rotation.set(Math.PI / 2, i * 0.48, i * 0.7);
+    instanceDummy.scale.setScalar(1);
+    instanceDummy.updateMatrix();
+    logs.setMatrixAt(i, instanceDummy.matrix);
   }
+  logs.instanceMatrix.needsUpdate = true;
 
   const flameColors = [
     [0xff531d, 0xff2d12],
@@ -899,6 +1065,17 @@ function createHearth(THREE: ThreeModule, parent: any, disposables: Disposable[]
   fireSeed.castShadow = true;
   hearth.add(fireSeed);
   disposables.push(fireSeed.geometry);
+  // 火种为纯展示循环，由 Anime.js 在手动 tick 之外驱动。
+  animeAnimations.push(
+    animate(fireSeed, {
+      scale: [0.88, 1.18],
+      rotateY: [0, 360],
+      duration: 2200,
+      ease: "inOutSine",
+      loop: true,
+      alternate: true
+    })
+  );
 
   const emberCount = 90;
   const positions = new Float32Array(emberCount * 3);
@@ -1276,37 +1453,58 @@ function createTotemPole(
   }
 }
 
+/** 可玩区域外围的实例化松林环 — 低成本背景填充。 */
+// 远处森林使用 InstancedMesh 批量绘制，减少 draw call。
 function createForestRing(THREE: ThreeModule, parent: any, disposables: Disposable[]) {
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x251a12, roughness: 0.98 });
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x162c1d, roughness: 0.92 });
   disposables.push(trunkMat, leafMat);
 
-  for (let i = 0; i < 112; i += 1) {
+  const treeCount = 112;
+  const dummy = new THREE.Object3D();
+  const trunkGeometry = new THREE.CylinderGeometry(0.12, 0.18, 2.3, 7);
+  const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMat, treeCount);
+  trunks.castShadow = true;
+  parent.add(trunks);
+  disposables.push(trunkGeometry);
+
+  const crownGeometries = [0, 1, 2].map((layer) => new THREE.ConeGeometry(0.9 - layer * 0.16, 1.5, 7));
+  const crowns = crownGeometries.map((geometry) => {
+    const mesh = new THREE.InstancedMesh(geometry, leafMat, treeCount);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    disposables.push(geometry);
+    return mesh;
+  });
+
+  for (let i = 0; i < treeCount; i += 1) {
     const angle = (i / 112) * Math.PI * 2;
     const radius = 62 + Math.sin(i * 2.1) * 6 + Math.random() * 6;
     const scale = 1.0 + Math.random() * 1.1;
-    const tree = new THREE.Group();
-    tree.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-    tree.rotation.y = -angle;
-    tree.userData.kind = "tree";
-    parent.add(tree);
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
 
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.18 * scale, 2.3 * scale, 7), trunkMat);
-    trunk.position.y = 1.15 * scale;
-    trunk.castShadow = true;
-    tree.add(trunk);
-    disposables.push(trunk.geometry);
-
+    dummy.position.set(x, 1.15 * scale, z);
+    dummy.rotation.set(0, -angle, 0);
+    dummy.scale.setScalar(scale);
+    dummy.updateMatrix();
+    trunks.setMatrixAt(i, dummy.matrix);
     for (let layer = 0; layer < 3; layer += 1) {
-      const crown = new THREE.Mesh(new THREE.ConeGeometry((0.9 - layer * 0.16) * scale, 1.5 * scale, 7), leafMat);
-      crown.position.y = (2 + layer * 0.58) * scale;
-      crown.castShadow = true;
-      tree.add(crown);
-      disposables.push(crown.geometry);
+      dummy.position.set(x, (2 + layer * 0.58) * scale, z);
+      dummy.rotation.set(0, -angle, 0);
+      dummy.scale.setScalar(scale);
+      dummy.updateMatrix();
+      crowns[layer]!.setMatrixAt(i, dummy.matrix);
     }
+  }
+
+  trunks.instanceMatrix.needsUpdate = true;
+  for (const crown of crowns) {
+    crown.instanceMatrix.needsUpdate = true;
   }
 }
 
+/** 地平线雾色剪影（挂在 scene 根节点，非 world）。 */
 function createDistantHills(THREE: ThreeModule, scene: any, disposables: Disposable[]) {
   const mat = new THREE.MeshBasicMaterial({ color: 0x16251f, fog: true });
   disposables.push(mat);
@@ -1320,6 +1518,8 @@ function createDistantHills(THREE: ThreeModule, scene: any, disposables: Disposa
   }
 }
 
+/** 村落上方的夜空点云。 */
+// 星场使用 Points + BufferGeometry，一次提交大量点位，比逐个 Mesh 更轻。
 function createStarfield(THREE: ThreeModule, scene: any, disposables: Disposable[]) {
   const count = 260;
   const positions = new Float32Array(count * 3);

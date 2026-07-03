@@ -2,6 +2,10 @@ import type { CharacterAnimator } from "./characterAnimation";
 import { loadCharacterWithAnimations } from "./characterAnimation";
 import type { loadModelById } from "./modelAssets";
 
+/**
+ * NPC 与 Three.js 场景的适配层。
+ * 数据表只描述角色、站位和交互半径；spawn 时才真正加载 GLB 并加入 world。
+ */
 export type NpcDialoguePayload = {
   id: string;
   name: string;
@@ -195,6 +199,7 @@ export async function spawnVillageNpc(
   disposables: Disposable[],
   sceneId?: string
 ): Promise<VillageNpcInstance> {
+  // NPC 使用和玩家相同的 GLTF + AnimationMixer 管线，保证动画行为一致。
   const { characterGltf, animator } = await loadCharacterWithAnimations(
     THREE,
     loadModel,
@@ -204,6 +209,7 @@ export async function spawnVillageNpc(
 
   const character = characterGltf.scene as any;
   character.name = definition.name;
+  // 统一开启阴影，让外部模型和程序化场景的光照表现保持一致。
   character.traverse((child: any) => {
     if (child.isMesh || child.isSkinnedMesh) {
       child.castShadow = true;
@@ -214,16 +220,19 @@ export async function spawnVillageNpc(
   const bounds = new THREE.Box3().setFromObject(character);
   const size = bounds.getSize(new THREE.Vector3());
   if (size.y > 0) {
+    // 按目标身高缩放不同 GLB，避免模型来源不同导致 NPC 高矮失控。
     character.scale.setScalar(definition.targetHeight / size.y);
   }
   bounds.setFromObject(character);
   const placement = sceneId ? definition.placements?.[sceneId] : undefined;
   const position = placement?.position ?? definition.position;
+  // 使用包围盒 min.y 抬高模型，让脚底准确落在地面 y=0 附近。
   character.position.set(position[0], -bounds.min.y + position[1], position[2]);
   character.rotation.y = placement?.rotationY ?? definition.rotationY;
   (world as any).add(character);
 
   character.traverse((child: any) => {
+    // 把外部模型里的 geometry/material 纳入场景统一 dispose 清单。
     if (child.geometry) disposables.push(child.geometry);
     if (child.material) {
       if (Array.isArray(child.material)) disposables.push(...child.material);
@@ -246,6 +255,7 @@ export function findNearbyNpc(
   playerRoot: { position: { x: number; y: number; z: number } },
   npcs: VillageNpcInstance[]
 ) {
+  // 只在 XZ 平面计算交互距离，避免角色高度或模型中心点影响对话触发。
   let nearest: VillageNpcInstance | undefined;
   let nearestDistance = Infinity;
 
