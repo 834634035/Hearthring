@@ -44,8 +44,10 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 body {
@@ -123,10 +125,18 @@ textarea:focus-visible {
 .app-shell {
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  min-height: 0;
+  height: 100dvh;
+  overflow: hidden;
   background: var(--surface-strong);
   color: var(--text-inverse);
   padding: 18px 14px 20px;
@@ -161,8 +171,13 @@ textarea:focus-visible {
 
 .nav-list {
   display: grid;
+  align-content: start;
   gap: 6px;
-  margin-top: 18px;
+  min-height: 0;
+  margin-top: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
 }
 
 .nav-item {
@@ -214,7 +229,7 @@ textarea:focus-visible {
 .sidebar-auth {
   display: grid;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 16px;
 }
@@ -241,7 +256,69 @@ textarea:focus-visible {
 
 .main-panel {
   min-width: 0;
+  min-height: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: clamp(18px, 2.2vw, 30px);
+}
+
+.nav-list,
+.main-panel,
+.admin-modal-body,
+.entity-form .form-grid,
+.table-wrap,
+.scene-dialogue-body,
+.tribe-graph-detail {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 53, 0.48) rgba(255, 247, 232, 0.18);
+}
+
+.nav-list::-webkit-scrollbar,
+.main-panel::-webkit-scrollbar,
+.admin-modal-body::-webkit-scrollbar,
+.entity-form .form-grid::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,
+.scene-dialogue-body::-webkit-scrollbar,
+.tribe-graph-detail::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.nav-list::-webkit-scrollbar-track,
+.main-panel::-webkit-scrollbar-track,
+.admin-modal-body::-webkit-scrollbar-track,
+.entity-form .form-grid::-webkit-scrollbar-track,
+.table-wrap::-webkit-scrollbar-track,
+.scene-dialogue-body::-webkit-scrollbar-track,
+.tribe-graph-detail::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 247, 232, 0.16);
+}
+
+.nav-list::-webkit-scrollbar-thumb,
+.main-panel::-webkit-scrollbar-thumb,
+.admin-modal-body::-webkit-scrollbar-thumb,
+.entity-form .form-grid::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb,
+.scene-dialogue-body::-webkit-scrollbar-thumb,
+.tribe-graph-detail::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(255, 247, 232, 0.16);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(177, 115, 65, 0.82), rgba(91, 61, 38, 0.78));
+  background-clip: padding-box;
+}
+
+.nav-list::-webkit-scrollbar-thumb:hover,
+.main-panel::-webkit-scrollbar-thumb:hover,
+.admin-modal-body::-webkit-scrollbar-thumb:hover,
+.entity-form .form-grid::-webkit-scrollbar-thumb:hover,
+.table-wrap::-webkit-scrollbar-thumb:hover,
+.scene-dialogue-body::-webkit-scrollbar-thumb:hover,
+.tribe-graph-detail::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(199, 135, 78, 0.95), rgba(104, 68, 41, 0.92));
+  background-clip: padding-box;
 }
 
 .auth-loading {
@@ -1832,6 +1909,240 @@ h2 {
   line-height: 1.5;
 }
 
+.app-shell:has(.tribe-relations-page) {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-panel:has(.tribe-relations-page) {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.tribe-relations-page {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.tribe-relations-page .page-header {
+  align-items: center;
+}
+
+.tribe-relations-page .page-header h1 {
+  font-size: clamp(22px, 2vw, 28px);
+}
+
+.tribe-relations-page .dashboard-subtitle {
+  margin-top: 4px;
+}
+
+.tribe-graph-page-canvas {
+  min-height: 0;
+  height: 100%;
+}
+
+.tribe-graph-page-canvas,
+.tribe-graph-overlay {
+  color: #ecd7af;
+}
+
+.tribe-graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 7, 5, 0.72);
+}
+
+.tribe-graph-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid rgba(226, 172, 96, 0.45);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(52, 34, 21, 0.96), rgba(19, 17, 13, 0.98)),
+    #16120d;
+  box-shadow: var(--shadow-md);
+}
+
+.tribe-graph-shell-page {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.tribe-graph-shell-page .tribe-graph-header {
+  display: none;
+}
+
+.tribe-graph-overlay .tribe-graph-shell {
+  width: min(1360px, 100%);
+  height: min(860px, calc(100vh - 40px));
+  box-shadow: 0 28px 110px rgba(0, 0, 0, 0.62);
+}
+
+.tribe-graph-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid rgba(223, 173, 106, 0.18);
+  padding: 16px 18px 14px;
+}
+
+.tribe-graph-header h2 {
+  margin: 0 0 6px;
+  color: #ffe6b5;
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+.tribe-graph-header p {
+  margin: 0;
+  color: #ceb993;
+  line-height: 1.6;
+}
+
+.tribe-graph-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid rgba(223, 173, 106, 0.14);
+  padding: 8px 10px;
+  background: rgba(20, 15, 10, 0.42);
+}
+
+.tribe-filter {
+  border: 1px solid rgba(202, 151, 83, 0.35);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: rgba(45, 31, 20, 0.88);
+  color: #dcc397;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tribe-filter.active {
+  border-color: rgba(255, 214, 134, 0.86);
+  background: linear-gradient(180deg, rgba(126, 78, 35, 0.94), rgba(72, 43, 24, 0.94));
+  color: #ffe9b8;
+}
+
+.tribe-graph-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  min-height: 0;
+}
+
+.tribe-graph-canvas-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tribe-graph-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.tribe-graph-canvas-wrap canvas.is-dragging-node {
+  cursor: grabbing;
+}
+
+.tribe-graph-detail {
+  overflow: auto;
+  border-left: 1px solid rgba(223, 173, 106, 0.18);
+  padding: 12px;
+  background: rgba(18, 14, 10, 0.68);
+}
+
+.tribe-graph-detail h3 {
+  margin: 0 0 8px;
+  color: #ffe4ae;
+  font-size: 24px;
+}
+
+.tribe-graph-detail dl {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.tribe-graph-detail dl div {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.tribe-graph-detail dt {
+  color: #d69f60;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tribe-graph-detail dd {
+  margin: 0;
+  color: #f0d5a0;
+}
+
+.tribe-graph-detail > p {
+  margin: 0 0 12px;
+  color: #d4c09c;
+  line-height: 1.7;
+}
+
+.tribe-graph-detail h4 {
+  margin: 0 0 8px;
+  color: #ffd997;
+}
+
+.tribe-graph-detail ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tribe-graph-detail li {
+  border: 1px solid rgba(220, 165, 91, 0.22);
+  border-radius: 8px;
+  padding: 9px;
+  background: rgba(45, 31, 20, 0.64);
+}
+
+.tribe-graph-detail li strong,
+.tribe-graph-detail li span {
+  display: block;
+}
+
+.tribe-graph-detail li span {
+  margin: 3px 0 6px;
+  color: #f4d6a0;
+  font-weight: 900;
+}
+
+.tribe-graph-detail li p {
+  margin: 0;
+  color: #cdb995;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .editor-panel {
   position: relative;
   padding: 20px;
@@ -2280,13 +2591,18 @@ h2 {
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .sidebar {
-    position: sticky;
-    top: 0;
+    height: auto;
+    max-height: 38dvh;
     z-index: 5;
     padding-bottom: 14px;
+  }
+
+  .main-panel {
+    height: 100%;
   }
 
   .nav-list {
@@ -2319,6 +2635,10 @@ h2 {
 @media (max-width: 720px) {
   .main-panel {
     padding: 14px;
+  }
+
+  .main-panel:has(.tribe-relations-page) {
+    padding: 8px;
   }
 
   .login-page {
@@ -2449,5 +2769,24 @@ h2 {
   .map-panel .world-map-shell {
     min-height: 0;
     aspect-ratio: 1586 / 992;
+  }
+
+  .tribe-graph-page-canvas {
+    min-height: 0;
+  }
+
+  .tribe-graph-shell {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tribe-graph-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 1fr) 220px;
+  }
+
+  .tribe-graph-detail {
+    border-left: 0;
+    border-top: 1px solid rgba(223, 173, 106, 0.18);
   }
 }

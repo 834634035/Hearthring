@@ -47,6 +47,10 @@ export function Shell({ children }: ShellProps) {
             <span className="nav-symbol">陆</span>
             <span>大陆地图</span>
           </NavLink>
+          <NavLink to="/tribe-relations" className={navClass}>
+            <span className="nav-symbol">图</span>
+            <span>部落关系图</span>
+          </NavLink>
           <NavLink to="/chapter-plan" className={navClass}>
             <span className="nav-symbol">章</span>
             <span>第一章策划</span>

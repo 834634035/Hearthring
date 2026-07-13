@@ -16,6 +16,13 @@ export type ThirdPersonSettings = {
   /** 站立时鼠标环视的角速度（弧度/秒） */
   idleTurnSpeed: number;
   cameraFollowSpeed: number;
+  cameraSpringStiffness: number;
+  cameraSpringDamping: number;
+  lookAtFollowSpeed: number;
+  speedDistanceBoost: number;
+  lookAheadDistance: number;
+  playerCollisionRadius: number;
+  collisionCircles?: CollisionCircle[];
 };
 
 export type ThirdPersonPointer = {
@@ -27,10 +34,15 @@ export type ThirdPersonPointer = {
 };
 
 type KeyState = Record<string, boolean>;
+export type CollisionCircle = {
+  x: number;
+  z: number;
+  radius: number;
+};
 const PLAYER_WORLD_LIMIT = 58;
 
 export function triggerPlayerAttack(animator: CharacterAnimator) {
-  if (animator.isActionLocked()) return false;
+  if (animator.isActionLocked() && !animator.isJumpLocked()) return false;
   return playAttackAnimation(animator) > 0;
 }
 
@@ -63,8 +75,52 @@ function terrainLift(x: number, z: number) {
   return Math.sin(x * 0.12 + z * 0.09) * 0.05;
 }
 
+function resolveCircleCollisions(
+  THREE: any,
+  position: any,
+  playerRadius: number,
+  circles: CollisionCircle[]
+) {
+  for (let pass = 0; pass < 3; pass += 1) {
+    let moved = false;
+    for (const circle of circles) {
+      const dx = position.x - circle.x;
+      const dz = position.z - circle.z;
+      const minDistance = playerRadius + circle.radius;
+      const distanceSq = dx * dx + dz * dz;
+      if (distanceSq >= minDistance * minDistance) continue;
+
+      const distance = Math.sqrt(distanceSq);
+      if (distance < 1e-5) {
+        position.x += minDistance;
+      } else {
+        const push = minDistance - distance;
+        position.x += (dx / distance) * push;
+        position.z += (dz / distance) * push;
+      }
+      moved = true;
+    }
+    if (!moved) break;
+  }
+
+  position.x = THREE.MathUtils.clamp(position.x, -PLAYER_WORLD_LIMIT, PLAYER_WORLD_LIMIT);
+  position.z = THREE.MathUtils.clamp(position.z, -PLAYER_WORLD_LIMIT, PLAYER_WORLD_LIMIT);
+}
+
 function cameraYawFromCharacter(characterYaw: number, orbitYaw: number) {
   return characterYaw + Math.PI + orbitYaw;
+}
+
+function getCameraSpringState(THREE: any, camera: any, lookTarget: any) {
+  const state = camera.userData.thirdPersonSpring as { velocity: any; lookTarget: any } | undefined;
+  if (state) return state;
+
+  const nextState = {
+    velocity: new THREE.Vector3(),
+    lookTarget: lookTarget.clone()
+  };
+  camera.userData.thirdPersonSpring = nextState;
+  return nextState;
 }
 
 function decayOrbitOffset(current: number, delta: number, speed: number) {
@@ -120,21 +176,30 @@ export function updateThirdPersonPlayer(
     camera,
     fallbackYaw
   );
+  const moveDirection = new THREE.Vector3();
+  const keyboardTurnInput = (keys.a ? 1 : 0) - (keys.d ? 1 : 0);
+  const hasForwardBackInput = keys.w || keys.s;
   // moveDelta 使用 Three.Vector3 汇总 WASD 输入，再统一归一化，保证斜向移动不超速。
   const moveDelta = new THREE.Vector3();
 
   if (!movementBlocked) {
-    if (keys.w) moveDelta.add(viewForward);
-    if (keys.s) moveDelta.sub(viewForward);
-    if (keys.d) moveDelta.add(viewRight);
-    if (keys.a) moveDelta.sub(viewRight);
+    if (hasForwardBackInput && keyboardTurnInput !== 0) {
+      character.rotation.y += keyboardTurnInput * moveTurnRate * delta;
+    }
+    const driveForward =
+      hasForwardBackInput && keyboardTurnInput !== 0
+        ? new THREE.Vector3(Math.sin(character.rotation.y), 0, Math.cos(character.rotation.y))
+        : viewForward;
+    if (keys.w) moveDelta.add(driveForward);
+    if (keys.s) moveDelta.sub(driveForward);
   }
 
   const moving = moveDelta.lengthSq() > 0;
+  const speedFactor = moving ? (sprinting ? 1 : settings.walkSpeed / settings.sprintSpeed) : 0;
 
   if (moving) {
     animator.clearManualMode();
-    const moveDirection = moveDelta.clone().normalize();
+    moveDirection.copy(moveDelta).normalize();
     moveDelta.copy(moveDirection).multiplyScalar(speed);
     character.position.x += moveDelta.x;
     character.position.z += moveDelta.z;
@@ -149,14 +214,13 @@ export function updateThirdPersonPlayer(
       facingRotation,
       moveTurnRate * delta
     );
-
     pointer.yawTarget = decayOrbitOffset(pointer.yawTarget, delta, settings.cameraFollowSpeed * 1.4);
     pointer.yaw += angleDelta(pointer.yaw, pointer.yawTarget) * Math.min(1, cameraSmooth * 1.6);
-  } else if (!movementBlocked && Math.abs(pointer.yawTarget) > 1e-5) {
-    const before = character.rotation.y;
-    const targetYaw = before + pointer.yawTarget;
-    character.rotation.y = rotateTowardAngle(before, targetYaw, settings.idleTurnSpeed * delta);
-    pointer.yawTarget -= angleDelta(before, character.rotation.y);
+  } else if (!movementBlocked && (Math.abs(pointer.yawTarget) > 1e-5 || keyboardTurnInput !== 0)) {
+    pointer.yawTarget += keyboardTurnInput * settings.idleTurnSpeed * delta;
+    const turnStep = Math.min(Math.abs(pointer.yawTarget), settings.idleTurnSpeed * delta) * Math.sign(pointer.yawTarget);
+    character.rotation.y += turnStep;
+    pointer.yawTarget -= turnStep;
     pointer.yaw += angleDelta(pointer.yaw, 0) * Math.min(1, cameraSmooth);
   } else {
     pointer.yaw += angleDelta(pointer.yaw, 0) * Math.min(1, cameraSmooth);
@@ -164,6 +228,7 @@ export function updateThirdPersonPlayer(
 
   character.position.x = THREE.MathUtils.clamp(character.position.x, -PLAYER_WORLD_LIMIT, PLAYER_WORLD_LIMIT);
   character.position.z = THREE.MathUtils.clamp(character.position.z, -PLAYER_WORLD_LIMIT, PLAYER_WORLD_LIMIT);
+  resolveCircleCollisions(THREE, character.position, settings.playerCollisionRadius, settings.collisionCircles ?? []);
   character.position.y = footOffsetY + terrainLift(character.position.x, character.position.z);
 
   // 根据移动状态驱动 AnimationMixer 中的待机/行走/奔跑循环。
@@ -179,20 +244,35 @@ export function updateThirdPersonPlayer(
 
   const lookTarget = new THREE.Vector3(
     character.position.x,
-    character.position.y + settings.lookAtHeight,
+    character.position.y + settings.lookAtHeight + speedFactor * 0.16,
     character.position.z
   );
+  if (moving) {
+    lookTarget.add(moveDirection.clone().multiplyScalar(settings.lookAheadDistance * speedFactor));
+  }
 
   // 相机位置由角色朝向、鼠标环绕 yaw/pitch 和跟随距离共同决定。
   const orbitYaw = cameraYawFromCharacter(character.rotation.y, pointer.yaw);
   const cosPitch = Math.cos(pointer.pitch);
   const sinPitch = Math.sin(pointer.pitch);
+  const dynamicDistance = settings.cameraDistance + settings.speedDistanceBoost * speedFactor;
   const offset = new THREE.Vector3(
-    Math.sin(orbitYaw) * cosPitch * settings.cameraDistance,
-    sinPitch * settings.cameraDistance + settings.cameraHeight,
-    Math.cos(orbitYaw) * cosPitch * settings.cameraDistance
+    Math.sin(orbitYaw) * cosPitch * dynamicDistance,
+    sinPitch * dynamicDistance + settings.cameraHeight,
+    Math.cos(orbitYaw) * cosPitch * dynamicDistance
   );
 
-  camera.position.copy(lookTarget).add(offset);
-  camera.lookAt(lookTarget);
+  const desiredCameraPosition = lookTarget.clone().add(offset);
+  const spring = getCameraSpringState(THREE, camera, lookTarget);
+  const springDelta = Math.min(delta, 0.05);
+  const springForce = desiredCameraPosition
+    .clone()
+    .sub(camera.position)
+    .multiplyScalar(settings.cameraSpringStiffness);
+  const dampingForce = spring.velocity.clone().multiplyScalar(settings.cameraSpringDamping);
+
+  spring.velocity.add(springForce.sub(dampingForce).multiplyScalar(springDelta));
+  camera.position.add(spring.velocity.clone().multiplyScalar(springDelta));
+  spring.lookTarget.lerp(lookTarget, smoothStep(delta, settings.lookAtFollowSpeed));
+  camera.lookAt(spring.lookTarget);
 }

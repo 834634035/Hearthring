@@ -197,12 +197,15 @@ export async function spawnVillageNpc(
   disposables: Disposable[],
   sceneId?: string
 ): Promise<VillageNpcInstance> {
+  const animationPacks = Array.from(
+    new Set([...definition.animationPacks, "animations.kaykit.rigMedium.movementBasic"])
+  );
   // NPC 使用和玩家相同的 GLTF + AnimationMixer 管线，保证动画行为一致。
   const { characterGltf, animator } = await loadCharacterWithAnimations(
     THREE,
     loadModel,
     definition.modelId,
-    definition.animationPacks
+    animationPacks
   );
 
   const character = characterGltf.scene as any;
@@ -225,6 +228,7 @@ export async function spawnVillageNpc(
   const placement = sceneId ? definition.placements?.[sceneId] : undefined;
   const position = placement?.position ?? definition.position;
   // 使用包围盒 min.y 抬高模型，让脚底准确落在地面 y=0 附近。
+  character.userData.footOffsetY = -bounds.min.y;
   character.position.set(position[0], -bounds.min.y + position[1], position[2]);
   character.rotation.y = placement?.rotationY ?? definition.rotationY;
   (world as any).add(character);

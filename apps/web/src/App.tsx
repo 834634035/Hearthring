@@ -8,6 +8,7 @@ import { ChapterPlanPage } from "./pages/ChapterPlanPage";
 import { Dashboard } from "./pages/Dashboard";
 import { LoginPage } from "./pages/LoginPage";
 import { MapPage } from "./pages/MapPage";
+import { TribeRelationsPage } from "./pages/TribeRelationsPage";
 import { UsersPage } from "./pages/UsersPage";
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
               <Route path="/account" element={<AccountPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/tribe-relations" element={<TribeRelationsPage />} />
               <Route path="/chapter-plan" element={<ChapterPlanPage />} />
               {adminEntities.map((entity) => (
                 <Route key={entity.key} path={`/${entity.key}`} element={<AdminPage entity={entity.key} />} />

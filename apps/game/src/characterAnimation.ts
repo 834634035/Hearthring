@@ -107,7 +107,7 @@ export function createCharacterAnimator(THREE: any, root: unknown, clips: Loaded
   };
 
   const playOneShot = (clipName: string, fade = 0.08, kind: ActionLockKind = "attack") => {
-    if (actionLocked) return false;
+    if (actionLocked && !(lockKind === "jump" && kind === "attack")) return false;
     if (!play(clipName, { loop: false, fade, restart: true })) return false;
     actionLocked = true;
     lockKind = kind;
