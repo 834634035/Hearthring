@@ -24,6 +24,12 @@ export type VillageThirdPersonSettings = {
   moveTurnSpeed: number;
   idleTurnSpeed: number;
   cameraFollowSpeed: number;
+  cameraSpringStiffness: number;
+  cameraSpringDamping: number;
+  lookAtFollowSpeed: number;
+  speedDistanceBoost: number;
+  lookAheadDistance: number;
+  playerCollisionRadius: number;
 };
 
 export type VillageLightingSettings = {
@@ -34,6 +40,23 @@ export type VillageLightingSettings = {
 
 export type VillageFogSettings = {
   density: number;
+};
+
+export type DialogueCameraSettings = {
+  distanceScale: number;
+  minDistance: number;
+  maxDistance: number;
+  heightOffset: number;
+  lookAtHeight: number;
+  smoothSpeed: number;
+  exitDuration: number;
+};
+
+export type AiDebugSettings = {
+  enabled: boolean;
+  showPaths: boolean;
+  showRanges: boolean;
+  showColliders: boolean;
 };
 
 type CameraLike = {
@@ -64,6 +87,7 @@ export function attachVillageSceneGui(options: {
   moon: { intensity: number };
   ambient: { intensity: number };
   scene: SceneLike;
+  aiDebug?: AiDebugSettings;
 }) {
   const gui = new GUI({ title: "灰芽火塘地 · 控制", width: 340 });
   gui.domElement.style.zIndex = "30";
@@ -116,9 +140,15 @@ export function attachVillageSceneGui(options: {
     moveFolder.add(options.thirdPerson, "cameraDistance", 2.5, 12, 0.1).name("相机距离");
     moveFolder.add(options.thirdPerson, "cameraHeight", 0.2, 3.5, 0.05).name("相机高度");
     moveFolder.add(options.thirdPerson, "lookAtHeight", 0.8, 2.2, 0.05).name("注视高度");
-    moveFolder.add(options.thirdPerson, "moveTurnSpeed", 8, 32, 0.5).name("移动转向");
-    moveFolder.add(options.thirdPerson, "idleTurnSpeed", 4, 24, 0.5).name("待机转向");
+    moveFolder.add(options.thirdPerson, "moveTurnSpeed", 2, 16, 0.2).name("移动转向");
+    moveFolder.add(options.thirdPerson, "idleTurnSpeed", 0.2, 8, 0.1).name("待机转向");
     moveFolder.add(options.thirdPerson, "cameraFollowSpeed", 4, 28, 0.5).name("相机跟随");
+    moveFolder.add(options.thirdPerson, "cameraSpringStiffness", 20, 120, 1).name("相机弹簧");
+    moveFolder.add(options.thirdPerson, "cameraSpringDamping", 4, 32, 0.5).name("相机阻尼");
+    moveFolder.add(options.thirdPerson, "lookAtFollowSpeed", 4, 28, 0.5).name("注视平滑");
+    moveFolder.add(options.thirdPerson, "speedDistanceBoost", 0, 4, 0.05).name("速度拉远");
+    moveFolder.add(options.thirdPerson, "lookAheadDistance", 0, 4, 0.05).name("前看距离");
+    moveFolder.add(options.thirdPerson, "playerCollisionRadius", 0.2, 1.2, 0.02).name("碰撞半径");
   }
   moveFolder.open();
 
@@ -148,6 +178,14 @@ export function attachVillageSceneGui(options: {
       if (options.scene.fog) options.scene.fog.density = value;
     });
   fogFolder.open();
+
+  if (options.aiDebug) {
+    const aiFolder = gui.addFolder("AI 调试");
+    aiFolder.add(options.aiDebug, "enabled").name("显示调试层");
+    aiFolder.add(options.aiDebug, "showPaths").name("路径/目标点");
+    aiFolder.add(options.aiDebug, "showRanges").name("侦测/攻击范围");
+    aiFolder.add(options.aiDebug, "showColliders").name("碰撞体");
+  }
 
   const syncFromScene = () => {
     // 把当前 Three 相机/指针状态同步回 GUI，适合手动绕场景后复制参数。
@@ -241,8 +279,34 @@ export function attachVillageSceneGui(options: {
   return {
     registerCharacter,
     syncFromScene,
+    setVisible(visible: boolean) {
+      gui.domElement.style.display = visible ? "" : "none";
+    },
     destroy() {
       characterFolder?.destroy();
+      gui.destroy();
+    }
+  };
+}
+
+export function attachDialogueCameraGui(settings: DialogueCameraSettings) {
+  const gui = new GUI({ title: "NPC 对话镜头", width: 280 });
+  gui.domElement.style.zIndex = "31";
+  gui.domElement.style.right = "12px";
+
+  gui.add(settings, "distanceScale", 0.6, 2.4, 0.05).name("距离倍率");
+  gui.add(settings, "minDistance", 1.4, 5, 0.05).name("最小距离");
+  gui.add(settings, "maxDistance", 2, 8, 0.05).name("最大距离");
+  gui.add(settings, "heightOffset", -0.8, 1.2, 0.02).name("镜头高度");
+  gui.add(settings, "lookAtHeight", 0.6, 2.4, 0.02).name("注视高度");
+  gui.add(settings, "smoothSpeed", 1, 18, 0.1).name("平滑速度");
+  gui.add(settings, "exitDuration", 0.2, 3, 0.05).name("退出时长");
+
+  return {
+    setVisible(visible: boolean) {
+      gui.domElement.style.display = visible ? "" : "none";
+    },
+    destroy() {
       gui.destroy();
     }
   };

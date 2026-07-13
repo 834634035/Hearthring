@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getInteractionById, type ChapterInteractionDefinition } from "../chapterInteractions";
-import type { ChapterQuestStep } from "../chapterQuestline";
+import type { ChapterInteractionDefinition } from "../chapterInteractions";
 import { fetchNpcDialogue, type NpcChatMessage } from "../npcDialogueApi";
 import type { NpcDialoguePayload } from "../villageNpcs";
 
@@ -8,10 +7,7 @@ type SceneDialogueOverlayProps = {
   nearNpc: { id: string; name: string; title: string } | null;
   nearInteraction: ChapterInteractionDefinition | null;
   dialogue: NpcDialoguePayload | null;
-  activeQuest?: ChapterQuestStep | null;
-  completedInteractionIds: string[];
   onInteraction: (interaction: ChapterInteractionDefinition) => void;
-  onQuestComplete?: (questId: string) => void;
   onClose: () => void;
 };
 
@@ -19,16 +15,12 @@ export function SceneDialogueOverlay({
   nearNpc,
   nearInteraction,
   dialogue,
-  activeQuest = null,
-  completedInteractionIds,
   onInteraction,
-  onQuestComplete,
   onClose
 }: SceneDialogueOverlayProps) {
   const [messages, setMessages] = useState<NpcChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [source, setSource] = useState<"deepseek" | "fallback" | null>(null);
   const [notice, setNotice] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -39,7 +31,6 @@ export function SceneDialogueOverlay({
       setMessages([]);
       setInput("");
       setLoading(false);
-      setError("");
       setSource(null);
       setNotice("");
       return;
@@ -50,7 +41,6 @@ export function SceneDialogueOverlay({
 
     void (async () => {
       setLoading(true);
-      setError("");
       setNotice("");
       setMessages([]);
       try {
@@ -69,7 +59,6 @@ export function SceneDialogueOverlay({
         if (result.message) setNotice(result.message);
       } catch (err) {
         if (cancelled || requestId !== requestIdRef.current) return;
-        setError(err instanceof Error ? err.message : "对话服务暂时不可用，已使用本地台词。");
         setMessages([{ role: "assistant", content: dialogue.fallbackLines.join("\n") }]);
         setSource("fallback");
       } finally {
@@ -98,7 +87,6 @@ export function SceneDialogueOverlay({
     setMessages(nextMessages);
     setInput("");
     setLoading(true);
-    setError("");
 
     try {
       const result = await fetchNpcDialogue({
@@ -114,18 +102,14 @@ export function SceneDialogueOverlay({
       setSource(result.source);
       if (result.message) setNotice(result.message);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "发送失败，当前使用本地对话兜底。");
+      setMessages([...nextMessages, { role: "assistant", content: dialogue.fallbackLines.join("\n") }]);
+      setSource("fallback");
     } finally {
       setLoading(false);
     }
   }
 
   if (dialogue) {
-    const isQuestNpc = Boolean(activeQuest && activeQuest.npcId === dialogue.id);
-    const missingInteractions =
-      activeQuest?.requiredInteractionIds.filter((id) => !completedInteractionIds.includes(id)) ?? [];
-    const questReady = isQuestNpc && missingInteractions.length === 0;
-
     return (
       <div className="scene-dialogue-backdrop" role="presentation" onClick={onClose}>
         <section
@@ -197,46 +181,9 @@ export function SceneDialogueOverlay({
                 </div>
               </div>
             ) : null}
-            {error ? <p className="scene-dialogue-error">{error}</p> : null}
             {notice ? <p className="scene-dialogue-notice">{notice}</p> : null}
           </div>
           <footer className="scene-dialogue-footer">
-            {activeQuest ? (
-              <section className={isQuestNpc ? "scene-dialogue-quest active" : "scene-dialogue-quest"}>
-                <div>
-                  <span>{isQuestNpc ? "当前任务" : "任务线索"}</span>
-                  <strong>{activeQuest.title}</strong>
-                  <p>
-                    {isQuestNpc
-                      ? questReady
-                        ? activeQuest.completionLine
-                        : "你还需要先完成场景里的关键互动。"
-                      : `当前任务需要找 ${activeQuest.npcName}。`}
-                  </p>
-                </div>
-                <ul>
-                  {activeQuest.requiredInteractionIds.map((id, index) => {
-                    const interaction = getInteractionById(id);
-                    const done = completedInteractionIds.includes(id);
-                    return (
-                      <li className={done ? "objective-done" : ""} key={id}>
-                        {done ? "已完成" : "未完成"} · {activeQuest.objectives[index] ?? interaction?.label}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {isQuestNpc && onQuestComplete ? (
-                  <button
-                    type="button"
-                    className="scene-dialogue-button"
-                    disabled={!questReady}
-                    onClick={() => onQuestComplete(activeQuest.id)}
-                  >
-                    {questReady ? "回报并推进任务" : "缺少线索"}
-                  </button>
-                ) : null}
-              </section>
-            ) : null}
             <form
               className="scene-dialogue-form"
               onSubmit={(event) => {

@@ -101,9 +101,6 @@ app.post("/api/auth/change-password", asyncHandler(async (req, res) => {
 }));
 
 app.post("/api/npc/dialogue", asyncHandler(async (req, res) => {
-  const user = await requireAuth(req, res);
-  if (!user) return;
-
   const npcName = String(req.body?.npcName ?? "").trim();
   const npcTitle = String(req.body?.npcTitle ?? "").trim();
   if (!npcName) {

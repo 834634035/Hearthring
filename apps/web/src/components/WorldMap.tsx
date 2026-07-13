@@ -8,15 +8,18 @@ import Map from "ol/Map";
 import View from "ol/View";
 import { defaults as defaultControls } from "ol/control/defaults";
 import Translate, { type TranslateEvent } from "ol/interaction/Translate";
+import type Geometry from "ol/geom/Geometry";
+import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
 import ImageLayer from "ol/layer/Image";
 import VectorLayer from "ol/layer/Vector";
+import WebGLVectorLayer from "ol/layer/WebGLVector";
 import { unByKey } from "ol/Observable";
 import type { EventsKey } from "ol/events";
 import Projection from "ol/proj/Projection";
 import ImageStatic from "ol/source/ImageStatic";
 import VectorSource from "ol/source/Vector";
-import { Fill, Icon, Stroke, Style, Text } from "ol/style";
+import { Circle as CircleStyle, Fill, Icon, Stroke, Style, Text } from "ol/style";
 import { getCenter } from "ol/extent";
 import type { EntityRow } from "../types";
 
@@ -52,6 +55,17 @@ const markerIconScale = 0.2;
 const markerIconAnchor: [number, number] = [0.5, 0.86];
 /** 文字落在标识圆形区域中部，相对锚点向上偏移 */
 const markerLabelOffsetY = -30;
+const fixedTradeRoute = {
+  name: "盐曜商路",
+  durationMs: 7200,
+  stops: [
+    { name: "环城盐井", x: 18, y: 68 },
+    { name: "云箭驿口", x: 28, y: 53 },
+    { name: "灰芽溪谷", x: 36, y: 16 },
+    { name: "鹿角集市", x: 46, y: 28 },
+    { name: "黑石曜矿", x: 50, y: 11 }
+  ]
+};
 
 function createTribeMarkerStyle(feature: FeatureLike) {
   const name = String(feature.get("name") ?? "");
@@ -74,6 +88,115 @@ function createTribeMarkerStyle(feature: FeatureLike) {
       padding: [1, 2, 1, 2]
     })
   });
+}
+
+function createTradeRouteStyle(feature: FeatureLike) {
+  const kind = feature.get("kind");
+
+  if (kind === "trade-route") {
+    return [
+      new Style({
+        stroke: new Stroke({
+          color: "rgba(55, 29, 13, 0.76)",
+          width: 8
+        })
+      }),
+      new Style({
+        stroke: new Stroke({
+          color: "rgba(242, 196, 95, 0.38)",
+          lineDash: [10, 10],
+          width: 2.2
+        }),
+        text: new Text({
+          text: String(feature.get("name") ?? ""),
+          placement: "line",
+          repeat: 280,
+          font: '800 13px "Microsoft YaHei", sans-serif',
+          fill: new Fill({ color: "#fff4ce" }),
+          stroke: new Stroke({ color: "rgba(35, 20, 9, 0.92)", width: 4 })
+        })
+      })
+    ];
+  }
+
+  if (kind === "trade-trail") {
+    return new Style({
+      stroke: new Stroke({
+        color: "#ffe08a",
+        width: 5
+      })
+    });
+  }
+
+  if (kind === "trade-traveler") {
+    return [
+      new Style({
+        image: new CircleStyle({
+          radius: 12,
+          fill: new Fill({ color: "rgba(255, 224, 138, 0.22)" })
+        })
+      }),
+      new Style({
+        image: new CircleStyle({
+          radius: 5.5,
+          fill: new Fill({ color: "#fff0a6" }),
+          stroke: new Stroke({ color: "rgba(59, 32, 13, 0.92)", width: 2 })
+        }),
+        text: new Text({
+          text: String(feature.get("name") ?? ""),
+          font: '800 12px "Microsoft YaHei", sans-serif',
+          offsetY: -20,
+          fill: new Fill({ color: "#fff6df" }),
+          stroke: new Stroke({ color: "rgba(16, 22, 20, 0.92)", width: 3 })
+        })
+      })
+    ];
+  }
+
+  return new Style({
+    image: new CircleStyle({
+      radius: 5,
+      fill: new Fill({ color: "#f7d072" }),
+      stroke: new Stroke({ color: "rgba(35, 20, 9, 0.9)", width: 2 })
+    }),
+    text: new Text({
+      text: String(feature.get("name") ?? ""),
+      font: '700 11px "Microsoft YaHei", sans-serif',
+      offsetY: -16,
+      fill: new Fill({ color: "#fff6df" }),
+      stroke: new Stroke({ color: "rgba(16, 22, 20, 0.92)", width: 3 }),
+      overflow: true
+    })
+  });
+}
+
+function createTradeRouteWebGLStyle() {
+  return [
+    {
+      style: {
+        "stroke-width": 7,
+        "stroke-color": "rgba(55,29,13,0.74)"
+      },
+      filter: ["<=", ["line-metric"], ["var", "timestamp"]]
+    },
+    {
+      style: {
+        "stroke-width": 3.8,
+        "stroke-color": [
+          "interpolate",
+          ["linear"],
+          ["line-metric"],
+          0,
+          "hsl(42,100%,82%)",
+          0.55,
+          "hsl(36,100%,50%)",
+          1,
+          "hsl(15,94%,56%)"
+        ]
+      },
+      filter: ["<=", ["line-metric"], ["var", "timestamp"]]
+    }
+  ] as never;
 }
 
 export function WorldMap({ tribes, canEditTribes = false, onTribeCoordinatesChange }: WorldMapProps) {
@@ -151,6 +274,24 @@ export function WorldMap({ tribes, canEditTribes = false, onTribeCoordinatesChan
     });
     tribeLayerRef.current = tribeLayer;
 
+    const tradeRoute = createTradeRouteFeatures();
+    const tradeRouteSource = new VectorSource({
+      features: [tradeRoute.routeFeature]
+    });
+    const tradeRouteLayer = new WebGLVectorLayer({
+      source: tradeRouteSource,
+      style: createTradeRouteWebGLStyle(),
+      variables: {
+        timestamp: 0
+      }
+    });
+    const tradeRouteStopsLayer = new VectorLayer({
+      source: new VectorSource({
+        features: tradeRoute.stopFeatures
+      }),
+      style: createTradeRouteStyle
+    });
+
     const baseLayer = new ImageLayer({
       source: new ImageStatic({
         url: "/map-assets/east-continent-base.png",
@@ -162,11 +303,12 @@ export function WorldMap({ tribes, canEditTribes = false, onTribeCoordinatesChan
     const initialView = createBoundedView(target);
     const map = new Map({
       target,
-      layers: [baseLayer, tribeLayer],
+      layers: [baseLayer, tradeRouteLayer, tradeRouteStopsLayer, tribeLayer],
       controls: defaultControls({ rotate: false, attribution: false }),
       view: initialView
     });
     mapRef.current = map;
+    const tradeRouteFrameId = animateTradeRouteMetric(tradeRouteLayer, map);
 
     let isClamping = false;
     let centerKey = bindCenterClamp(initialView);
@@ -211,6 +353,7 @@ export function WorldMap({ tribes, canEditTribes = false, onTribeCoordinatesChan
       observer.disconnect();
       for (const key of translateKeyRef.current) unByKey(key);
       if (translateRef.current) map.removeInteraction(translateRef.current);
+      cancelAnimationFrame(tradeRouteFrameId.current);
       map.setTarget(undefined);
       mapRef.current = null;
       tribeSourceRef.current = null;
@@ -398,6 +541,45 @@ function createTribeFeature(row: EntityRow) {
     kind: "tribe",
     tribeId: row.id != null ? Number(row.id) : undefined
   });
+}
+
+function createTradeRouteFeatures() {
+  const coordinates = fixedTradeRoute.stops.map((stop) => toMapCoordinate(stop.x, stop.y));
+  const metricCoordinates = coordinates.map((coordinate, index) => [
+    coordinate[0],
+    coordinate[1],
+    index / Math.max(1, coordinates.length - 1)
+  ]);
+  const routeFeature = new Feature({
+    geometry: new LineString(metricCoordinates, "XYM"),
+    kind: "trade-route",
+    name: fixedTradeRoute.name
+  });
+  const stopFeatures = fixedTradeRoute.stops.map(
+    (stop) =>
+      new Feature({
+        geometry: new Point(toMapCoordinate(stop.x, stop.y)),
+        kind: "trade-stop",
+        name: stop.name
+      })
+  );
+
+  return { routeFeature, stopFeatures };
+}
+
+function animateTradeRouteMetric(vectorLayer: WebGLVectorLayer, map: Map) {
+  const frameId = { current: 0 };
+  const startedAt = performance.now();
+
+  const animate = (now: number) => {
+    const timestamp = ((now - startedAt) % fixedTradeRoute.durationMs) / fixedTradeRoute.durationMs;
+    vectorLayer.updateStyleVariables({ timestamp });
+    map.render();
+    frameId.current = requestAnimationFrame(animate);
+  };
+
+  frameId.current = requestAnimationFrame(animate);
+  return frameId;
 }
 
 function toMapCoordinate(xPercent: number, yPercent: number) {

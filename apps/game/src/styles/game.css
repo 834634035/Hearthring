@@ -75,7 +75,7 @@ body {
 .game-hud-scenes {
   right: 18px;
   top: 18px;
-  display: grid;
+  display: none;
   width: min(560px, calc(100vw - 36px));
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
@@ -85,7 +85,7 @@ body {
 .game-hud-quest {
   left: 18px;
   bottom: 18px;
-  display: grid;
+  display: none;
   width: min(740px, calc(100vw - 36px));
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr) auto;
   align-items: center;
@@ -115,6 +115,315 @@ body {
   width: min(460px, calc(100vw - 36px));
   gap: 12px;
   padding: 13px 15px;
+}
+
+.scene-combat-hud {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 7;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: min(390px, calc(100vw - 36px));
+  min-height: 82px;
+  border: 1px solid rgba(223, 173, 106, 0.46);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(72, 43, 28, 0.78), rgba(18, 15, 13, 0.88) 48%, rgba(29, 13, 12, 0.88)),
+    radial-gradient(circle at 24px 18px, rgba(255, 216, 139, 0.18), transparent 54px);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px rgba(255, 231, 183, 0.08);
+  color: #f2d6b6;
+  padding: 11px 13px 11px 11px;
+  backdrop-filter: blur(12px);
+}
+
+.scene-combat-hud::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  border: 1px solid rgba(255, 221, 153, 0.16);
+  border-radius: 6px;
+}
+
+.scene-health-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(238, 178, 90, 0.72);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 216, 140, 0.32), transparent 30%),
+    linear-gradient(145deg, rgba(91, 52, 28, 0.94), rgba(23, 15, 12, 0.98));
+  box-shadow:
+    0 0 22px rgba(223, 111, 71, 0.24),
+    inset 0 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.scene-health-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(255, 235, 188, 0.22);
+  border-radius: 50%;
+}
+
+.scene-health-avatar span {
+  color: #ffe4ae;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255, 238, 202, 0.55);
+}
+
+.scene-health-main {
+  min-width: 0;
+}
+
+.scene-health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.scene-health-name {
+  min-width: 48px;
+  color: #ffe2ad;
+  font-size: 15px;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(255, 226, 173, 0.28);
+}
+
+.scene-combat-hud strong {
+  min-width: 70px;
+  color: #fff0cd;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.scene-health-track {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  height: 18px;
+  border: 1px solid rgba(255, 214, 148, 0.28);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, rgba(27, 14, 12, 0.96), rgba(11, 8, 8, 0.98));
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.62),
+    0 0 12px rgba(171, 45, 39, 0.18);
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.scene-health-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+}
+
+.scene-health-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--health-percent);
+  min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 184, 130, 0.9), rgba(229, 47, 48, 0.95) 52%, rgba(126, 17, 25, 0.98)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 28px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 210, 0.42),
+    0 0 18px rgba(234, 60, 50, 0.44);
+  transition: width 180ms ease-out, filter 180ms ease-out;
+}
+
+.scene-health-shine {
+  position: absolute;
+  inset: 2px 10px auto 14px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 248, 219, 0.34), transparent);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.scene-combat-hud p {
+  overflow: hidden;
+  margin: 7px 0 0;
+  color: #d3b895;
+  font-size: 12px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-combat-hud.is-wounded .scene-health-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 198, 113, 0.92), rgba(224, 111, 43, 0.96) 54%, rgba(142, 54, 24, 0.98)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 28px);
+}
+
+.scene-combat-hud.is-critical {
+  border-color: rgba(255, 89, 72, 0.72);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.34),
+    0 0 24px rgba(211, 43, 39, 0.22),
+    inset 0 0 0 1px rgba(255, 231, 183, 0.08);
+}
+
+.scene-combat-hud.is-critical .scene-health-fill {
+  filter: saturate(1.25);
+  animation: health-critical-pulse 950ms ease-in-out infinite;
+}
+
+.scene-combat-hud.is-healing .scene-health-avatar {
+  border-color: rgba(166, 232, 132, 0.82);
+  box-shadow:
+    0 0 24px rgba(126, 220, 116, 0.28),
+    inset 0 0 0 4px rgba(0, 0, 0, 0.2);
+  animation: health-healing-avatar 1.6s ease-in-out infinite;
+}
+
+.scene-combat-hud.is-healing .scene-health-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 211, 137, 0.95), rgba(229, 72, 52, 0.95) 48%, rgba(125, 26, 24, 0.98)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 28px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 210, 0.46),
+    0 0 20px rgba(139, 226, 112, 0.32),
+    0 0 16px rgba(234, 60, 50, 0.34);
+}
+
+.scene-combat-hud.is-healing .scene-health-track::after {
+  background: linear-gradient(90deg, transparent, rgba(167, 255, 135, 0.18), rgba(255, 239, 165, 0.42), transparent);
+  opacity: 1;
+  animation: health-healing-sweep 1.35s ease-in-out infinite;
+}
+
+@keyframes health-critical-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 244, 210, 0.42),
+      0 0 14px rgba(234, 60, 50, 0.38);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 244, 210, 0.52),
+      0 0 24px rgba(255, 78, 58, 0.62);
+  }
+}
+
+@keyframes health-healing-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(110%);
+  }
+}
+
+@keyframes health-healing-avatar {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+.scene-controls-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.scene-death-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: #000;
+  opacity: 0;
+  transition: opacity 1.35s ease-in;
+}
+
+.scene-death-overlay.active {
+  opacity: 1;
+}
+
+.scene-death-overlay strong {
+  color: rgba(230, 230, 230, 0.96);
+  font-size: clamp(48px, 8vw, 104px);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  text-shadow:
+    0 0 18px rgba(255, 255, 255, 0.22),
+    0 0 42px rgba(140, 12, 12, 0.32);
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition:
+    opacity 0.45s ease-out 1.35s,
+    transform 0.45s ease-out 1.35s;
+}
+
+.scene-death-overlay.active strong {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.scene-death-overlay span {
+  position: absolute;
+  left: 50%;
+  bottom: max(54px, calc(env(safe-area-inset-bottom) + 36px));
+  transform: translateX(-50%);
+  color: rgba(236, 236, 236, 0.82);
+  font-size: clamp(16px, 2.2vw, 24px);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.22),
+    0 0 24px rgba(120, 16, 16, 0.28);
+  opacity: 0;
+}
+
+.scene-death-overlay.active span {
+  animation: death-restart-hint 1.15s ease-in-out 1.35s infinite;
+}
+
+@keyframes death-restart-hint {
+  0%,
+  100% {
+    opacity: 0.32;
+  }
+
+  50% {
+    opacity: 0.92;
+  }
 }
 
 button,
@@ -299,7 +608,7 @@ button {
 }
 
 .hearth-quest-actions {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: end;
   gap: 12px;
@@ -453,17 +762,18 @@ button {
   position: absolute;
   inset: 0;
   z-index: 10;
-  display: grid;
-  place-items: center;
-  padding: 22px;
-  background: rgba(9, 7, 5, 0.48);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 24px 24px;
+  background: linear-gradient(180deg, rgba(9, 7, 5, 0.04), rgba(9, 7, 5, 0.5));
 }
 
 .scene-dialogue {
   display: grid;
-  grid-template-rows: auto minmax(180px, 1fr) auto;
-  width: min(760px, 100%);
-  max-height: min(760px, calc(100vh - 64px));
+  grid-template-rows: auto minmax(74px, 1fr) auto;
+  width: min(980px, 100%);
+  max-height: min(42vh, 360px);
   border: 1px solid rgba(221, 166, 92, 0.5);
   border-radius: 8px;
   overflow: hidden;
@@ -475,7 +785,7 @@ button {
 
 .scene-dialogue-header,
 .scene-dialogue-footer {
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: rgba(24, 18, 13, 0.48);
 }
 
@@ -512,7 +822,28 @@ button {
 
 .scene-dialogue-body {
   overflow: auto;
-  padding: 16px;
+  padding: 12px 14px;
+  scrollbar-color: rgba(232, 178, 92, 0.62) rgba(29, 20, 14, 0.35);
+  scrollbar-width: thin;
+}
+
+.scene-dialogue-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scene-dialogue-body::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(29, 20, 14, 0.35);
+}
+
+.scene-dialogue-body::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(29, 20, 14, 0.35);
+  border-radius: 999px;
+  background: rgba(232, 178, 92, 0.72);
+}
+
+.scene-dialogue-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 207, 125, 0.86);
 }
 
 .scene-dialogue-row {
@@ -575,6 +906,7 @@ button {
 
 .scene-dialogue-footer {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   border-top: 1px solid rgba(223, 173, 106, 0.18);
 }
@@ -620,6 +952,7 @@ button {
 
 .scene-dialogue-quest {
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 0.75fr) auto;
   align-items: center;
   gap: 12px;
@@ -627,6 +960,18 @@ button {
   border-radius: 8px;
   padding: 12px;
   background: rgba(42, 29, 19, 0.68);
+}
+
+.three-scene-wrap-dialogue .scene-hud,
+.three-scene-wrap-dialogue .scene-fps,
+.three-scene-wrap-dialogue .scene-combat-hud,
+.three-scene-wrap-dialogue .scene-controls-canvas,
+.three-scene-wrap-dialogue .game-hud {
+  display: none;
+}
+
+.game-screen-dialogue > .game-hud {
+  display: none;
 }
 
 .scene-dialogue-quest.active {
@@ -697,6 +1042,43 @@ button {
 
   .scene-dialogue {
     max-height: calc(100vh - 32px);
+  }
+
+  .scene-combat-hud {
+    left: max(10px, env(safe-area-inset-left));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 10px;
+    width: min(330px, calc(100vw - 20px));
+    min-height: 70px;
+    padding: 9px 11px 9px 9px;
+  }
+
+  .scene-health-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .scene-health-avatar span {
+    font-size: 18px;
+  }
+
+  .scene-health-row {
+    margin-bottom: 5px;
+  }
+
+  .scene-health-name,
+  .scene-combat-hud strong {
+    font-size: 13px;
+  }
+
+  .scene-health-track {
+    height: 15px;
+  }
+
+  .scene-combat-hud p {
+    margin-top: 5px;
+    font-size: 11px;
   }
 
   .scene-hud {
