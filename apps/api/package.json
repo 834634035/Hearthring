@@ -5,11 +5,13 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "npx tsx watch --env-file=.env src/server.ts",
-    "start": "npx tsx --env-file=.env src/server.ts",
-    "build": "tsc -p tsconfig.json --noEmit",
-    "db:seed": "npx tsx --env-file=.env src/seed.ts",
-    "db:migrate": "npx tsx --env-file=.env src/migrate-cli.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "node --env-file=.env dist/server.js",
+    "build": "npm run clean && npm run typecheck && esbuild src/server.ts src/seed.ts --bundle --platform=node --format=esm --target=node20 --outdir=dist --external:express --external:cors --external:mysql2 --external:mysql2/*",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:seed": "node --env-file=.env dist/seed.js",
+    "db:seed:dev": "tsx --env-file=.env src/seed.ts",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config ../../vitest.config.ts apps/api"
   },
@@ -23,6 +25,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^24.12.0",
+    "esbuild": "^0.28.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
